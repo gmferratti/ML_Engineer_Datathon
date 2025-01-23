@@ -1,0 +1,11 @@
+[project]
+name = "ml-engineer-datathon"
+version = "0.1.0"
+description = "Last FIAP datathon challenge"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "ipykernel>=6.29.5",
+    "numpy>=2.0.2",
+    "pandas>=2.2.3",
+]
