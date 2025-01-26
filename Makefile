@@ -2,7 +2,7 @@ install-uv:
 	pipx install uv
 
 create-env:
-	uv venv --python 3.11
+	uv venv --python 3.12
 
 activate:
 	.venv\Scripts\activate
