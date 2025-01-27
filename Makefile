@@ -16,6 +16,9 @@ install-env:
 e:
 	uv pip install -e .
 
+pp_features:
+	uv run src/features/pipeline.py
+
 build:
 	uv build
 
