@@ -8,5 +8,6 @@ def pre_process_data() -> None:
     print(df_news.head())
     df_users = pre_process_users()
     print(df_users.head())
+    print("Done!")
     
 pre_process_data()

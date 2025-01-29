@@ -13,6 +13,7 @@ news_num_csv_files = 3
 
 users_template_path = "data/challenge-webmedia-e-globo-2023/files/treino/treino_parte{}.csv"
 users_num_csv_files = 6
+cold_start_threshold = 5
 
 # USERS_COLS
 
@@ -28,9 +29,9 @@ users_cols_to_explode = [
 users_dtypes = {
     "userId": "object",
     "userType": "category", 
-    "HistorySize": "int",
+    "historySize": "int",
     "history": "object",
-    "TimestampHistory": "object",
+    "timestampHistory": "float",
     "timeOnPageHistory": "int",
     "numberOfClicksHistory": "int",
     "scrollPercentageHistory": "float",

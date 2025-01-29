@@ -1,4 +1,5 @@
-- Implementar PP de noticias
-- Implementar PP de usuarios
+- Criar estrutura básica do pipeline de PP (DONE)
+- Implementar PP de usuarios (DONE)
+- Implementar PP de noticias (DOING)
 - Implementar modelagem de noticias
 - Integrar df de noticias e usuarios
