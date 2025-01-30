@@ -26,7 +26,7 @@ def pre_process_users() -> pd.DataFrame:
     # Processa colunas de histórico (explode e remove espaços)
     df_users = _process_history_columns(df_users)
     
-    # Converte colunas para tipos apropriados
+    # Converte colunas iniciais para tipos apropriados
     df_users = df_users.astype(users_dtypes)
     
     # Converte timestamp e ordena por usuário e data

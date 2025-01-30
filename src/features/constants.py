@@ -40,3 +40,6 @@ users_dtypes = {
 
 
 # USERS_DICTS
+
+
+# STATES_MAPPING
