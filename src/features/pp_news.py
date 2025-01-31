@@ -36,16 +36,22 @@ def preprocess_news() -> pd.DataFrame:
     df_news['local'] = df_news['urlExtracted'].apply(_extract_location)
     df_news['localState'] = df_news['local'].str.split('/').str[0]
     df_news['localRegion'] = df_news['local'].str.split('/').str[1]
-
+    
+    print("Esse aí passou!")
+    
     # Extrai tema da notícia da URL
-    df_news['theme'] = df_news['urlExtracted'].apply(lambda x: _extract_theme(x, _get_local_for_url(df_news, x)))
+    df_news['theme'] = df_news['urlExtracted'].apply(_extract_theme)
     df_news['themeMain'] = df_news['theme'].str.split('/').str[0]
     df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
 
+    print("Esse aí passou!")
+    
     # Limpa colunas de texto
     for col in cols_to_clean:
         df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
 
+    print("Esse aí passou!")
+    
     # Remove colunas desnecessárias
     df_news = df_news.drop(columns=cols_to_drop)
 
@@ -65,25 +71,21 @@ def _extract_location(url_part):
     match = regex.match(url_part)
     return match.group() if match else None
 
-def _extract_theme(url_part, location):
+def _extract_theme(url_part):
     """Extrai o tema da notícia a partir do miolo da URL."""
-    if not url_part:
-        return None
-    if location:
-        theme = url_part.replace(location, '').lstrip('/')
-        return theme if theme else None
-    return url_part
+    location = _extract_location(url_part)
+    if pd.notna(url_part):
+        if location:
+            theme = url_part.replace(location, '').lstrip('/')
+            return theme if theme else None
+        else:
+            return url_part
+    return None
 
 def _preprocess_text(text):
     """Padroniza e limpa o texto de notícias."""
     if not isinstance(text, str):
-        text = "" # Trata valores não string como vazios
+        text = ""
     text = re.sub(r'\W+', ' ', text)
     text = re.sub(r'\d+', '', text)
     return text.lower()
-
-def _get_local_for_url(df, url_extracted):
-    try:
-        return df.loc[df['urlExtracted'] == url_extracted, 'local'].iloc[0]
-    except (IndexError, KeyError):
-        return None
