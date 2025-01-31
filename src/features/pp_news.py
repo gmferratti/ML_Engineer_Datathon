@@ -1,15 +1,89 @@
 """Preprocessing for news features."""
 
 import pandas as pd
+import re
 from utils import concatenate_csv_to_df
-from constants import (news_template_path, news_num_csv_files)
+from constants import (
+    news_template_path, 
+    news_num_csv_files,
+    cols_to_clean,
+    cols_to_drop)
 
-
-def pre_process_news() -> pd.DataFrame:
+def preprocess_news() -> pd.DataFrame:
     """
-    Pré-processamento dos dados de notícias.
-    """   
-    
+    Realiza o pré-processamento dos dados de notícias:
+    - Concatena CSVs.
+    - Extrai informações da URL (localidade, tema da notícia).
+    - Limpa colunas de texto.
+    - Remove colunas desnecessárias.
+    """
+    # Concatena CSVs
     df_news = concatenate_csv_to_df(news_template_path, news_num_csv_files)
-    
+
+    # Renomeia coluna de chave primária
+    df_news = df_news.rename(columns={"page": "pageId"})
+
+    # Converte colunas de data de publicação e modificação
+    for col in ['issued', 'modified']:
+        df_news[col] = pd.to_datetime(df_news[col])
+        df_news[f'{col}Date'] = df_news[col].dt.date
+        df_news[f'{col}Time'] = df_news[col].dt.time
+
+    # Extrai informações do miolo da URL
+    df_news['urlExtracted'] = df_news['url'].apply(_extract_url_midsection)
+
+    # Extrai localidade da URL
+    df_news['local'] = df_news['urlExtracted'].apply(_extract_location)
+    df_news['localState'] = df_news['local'].str.split('/').str[0]
+    df_news['localRegion'] = df_news['local'].str.split('/').str[1]
+
+    # Extrai tema da notícia da URL
+    df_news['theme'] = df_news['urlExtracted'].apply(lambda x: _extract_theme(x, _get_local_for_url(df_news, x)))
+    df_news['themeMain'] = df_news['theme'].str.split('/').str[0]
+    df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
+
+    # Limpa colunas de texto
+    for col in cols_to_clean:
+        df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
+
+    # Remove colunas desnecessárias
+    df_news = df_news.drop(columns=cols_to_drop)
+
     return df_news
+
+def _extract_url_midsection(url):
+    """Extrai o miolo relevante da URL."""
+    regex = r'(?<=g1\.globo\.com\/)(.*?)(?=\/noticia)'
+    match = re.search(regex, url)
+    return match.group() if match else None
+
+def _extract_location(url_part):
+    """Extrai a localidade a partir do miolo da URL."""
+    if not url_part:
+        return None
+    regex = re.compile(r'^[a-z]{2}/[a-z-]+')
+    match = regex.match(url_part)
+    return match.group() if match else None
+
+def _extract_theme(url_part, location):
+    """Extrai o tema da notícia a partir do miolo da URL."""
+    if not url_part:
+        return None
+    if location:
+        theme = url_part.replace(location, '').lstrip('/')
+        return theme if theme else None
+    return url_part
+
+def _preprocess_text(text):
+    """Padroniza e limpa o texto de notícias."""
+    if not isinstance(text, str):
+        text = "" # Trata valores não string como vazios
+    text = re.sub(r'\W+', ' ', text)
+    text = re.sub(r'\d+', '', text)
+    return text.lower()
+
+def _get_local_for_url(df, url_extracted):
+    try:
+        return df.loc[df['urlExtracted'] == url_extracted, 'local'].iloc[0]
+    except (IndexError, KeyError):
+        return None

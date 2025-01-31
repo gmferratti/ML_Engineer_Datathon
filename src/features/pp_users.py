@@ -9,7 +9,7 @@ from constants import (
     cold_start_threshold
 )
 
-def pre_process_users() -> pd.DataFrame:
+def preprocess_users() -> pd.DataFrame:
     """
     Realiza o pré-processamento dos dados dos usuários:
     - Concatena CSVs.
@@ -109,6 +109,5 @@ def _downcast_columns(df: pd.DataFrame) -> pd.DataFrame:
     df['scrollPercentageHistory'] = pd.to_numeric(df['scrollPercentageHistory'], downcast='float')
     df['minutesSinceLastVisit'] = pd.to_numeric(df['minutesSinceLastVisit'], downcast='float')
     df['timestampHistoryWeekday'] = df['timestampHistoryWeekday'].astype('int16')
-    df['timestampHistoryHour'] = df['timestampHistoryHour'].astype('int16')
-    
+    df['timestampHistoryHour'] = df['timestampHistoryHour'].astype('int16')   
     return df
