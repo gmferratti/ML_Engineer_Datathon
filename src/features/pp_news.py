@@ -9,6 +9,7 @@ from constants import (
     cols_to_clean,
     cols_to_drop)
 
+# TODO: parâmetro global para sampling de dados
 def preprocess_news() -> pd.DataFrame:
     """
     Realiza o pré-processamento dos dados de notícias:
@@ -37,20 +38,14 @@ def preprocess_news() -> pd.DataFrame:
     df_news['localState'] = df_news['local'].str.split('/').str[0]
     df_news['localRegion'] = df_news['local'].str.split('/').str[1]
     
-    print("Esse aí passou!")
-    
     # Extrai tema da notícia da URL
     df_news['theme'] = df_news['urlExtracted'].apply(_extract_theme)
     df_news['themeMain'] = df_news['theme'].str.split('/').str[0]
     df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
-
-    print("Esse aí passou!")
     
     # Limpa colunas de texto
     for col in cols_to_clean:
         df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
-
-    print("Esse aí passou!")
     
     # Remove colunas desnecessárias
     df_news = df_news.drop(columns=cols_to_drop)
@@ -88,4 +83,5 @@ def _preprocess_text(text):
         text = ""
     text = re.sub(r'\W+', ' ', text)
     text = re.sub(r'\d+', '', text)
+    # TODO: lematizar, decoding, remover stopwords, etc.
     return text.lower()

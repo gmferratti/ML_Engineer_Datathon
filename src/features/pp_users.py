@@ -36,6 +36,7 @@ def preprocess_users() -> pd.DataFrame:
     df_users = _extract_time_features(df_users)
     
     # Cria indicador de fim de semana
+    # TODO: passar isso para parte de data handling
     df_users["isWeekend"] = df_users["timestampHistoryWeekday"] >= 5
     
     # Classifica os períodos do dia
@@ -43,9 +44,10 @@ def preprocess_users() -> pd.DataFrame:
     
     # Cria indicador de cold start
     df_users["coldStart"] = df_users["historySize"] < cold_start_threshold
+    # TODO: se sobrar tempo, avaliar o "desvio padrão" da temática
     
     # Renomeia a coluna de chave secundária
-    df_users.rename(columns={"history": "historyId"}, inplace=True)
+    df_users.rename(columns={"history": "pageId"}, inplace=True)
     
     # Remove colunas desnecessárias
     df_users.drop(columns=["timestampHistory", "timestampHistory_new"], inplace=True)
