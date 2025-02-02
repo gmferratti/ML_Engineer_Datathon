@@ -2,14 +2,25 @@
 
 import pandas as pd
 import re
+import nltk
+import unicodedata
+
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from utils import concatenate_csv_to_df
 from constants import (
     news_template_path, 
     news_num_csv_files,
     cols_to_clean,
     cols_to_drop)
+from config import SAMPLE_RATE
 
-# TODO: parâmetro global para sampling de dados
+# Downloading extra dependencies
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+print("Downloaded NLTK dependencies.")
+
 def preprocess_news() -> pd.DataFrame:
     """
     Realiza o pré-processamento dos dados de notícias:
@@ -20,6 +31,9 @@ def preprocess_news() -> pd.DataFrame:
     """
     # Concatena CSVs
     df_news = concatenate_csv_to_df(news_template_path, news_num_csv_files)
+    
+    # Faz o sampling dos dados
+    df_news = df_news.sample(frac=SAMPLE_RATE, random_state=42)
 
     # Renomeia coluna de chave primária
     df_news = df_news.rename(columns={"page": "pageId"})
@@ -80,8 +94,27 @@ def _extract_theme(url_part):
 def _preprocess_text(text):
     """Padroniza e limpa o texto de notícias."""
     if not isinstance(text, str):
-        text = ""
+        return ""
+    
+    # Remover acentos
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    
+    # Remover caracteres especiais e números
     text = re.sub(r'\W+', ' ', text)
     text = re.sub(r'\d+', '', text)
-    # TODO: lematizar, decoding, remover stopwords, etc.
-    return text.lower()
+    
+    # Converter para minúsculas
+    text = text.lower()
+    
+    # Tokenização
+    words = text.split()
+    
+    # Remover stopwords das tokens
+    stop_words = set(stopwords.words('portuguese'))
+    words = [word for word in words if word not in stop_words]
+    
+    # Lemmatização
+    lemmatizer = WordNetLemmatizer()
+    words = [lemmatizer.lemmatize(word) for word in words]
+    
+    return ' '.join(words) # junta novamente as palavras

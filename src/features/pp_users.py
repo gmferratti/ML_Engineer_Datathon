@@ -8,6 +8,7 @@ from constants import (
     users_dtypes,
     cold_start_threshold
 )
+from config import SAMPLE_RATE
 
 def preprocess_users() -> pd.DataFrame:
     """
@@ -19,9 +20,11 @@ def preprocess_users() -> pd.DataFrame:
     - Cria variáveis derivadas (ex: minutos desde o último acesso, flag de cold start).
     - Realiza downcasting das colunas.
     """
-    
     # Concatena CSVs
     df_users = concatenate_csv_to_df(users_template_path, users_num_csv_files)
+    
+    # Faz o sampling dos dados
+    df_users = df_users.sample(frac=SAMPLE_RATE, random_state=42)
     
     # Processa colunas de histórico (explode e remove espaços)
     df_users = _process_history_columns(df_users)
@@ -34,13 +37,6 @@ def preprocess_users() -> pd.DataFrame:
     
     # Cria variáveis temporais derivadas
     df_users = _extract_time_features(df_users)
-    
-    # Cria indicador de fim de semana
-    # TODO: passar isso para parte de data handling
-    df_users["isWeekend"] = df_users["timestampHistoryWeekday"] >= 5
-    
-    # Classifica os períodos do dia
-    df_users["dayPeriod"] = _classify_day_period(df_users)
     
     # Cria indicador de cold start
     df_users["coldStart"] = df_users["historySize"] < cold_start_threshold
@@ -89,6 +85,10 @@ def _extract_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df["timestampHistoryWeekday"] = df["timestampHistory"].dt.dayofweek
     df["timestampHistoryHour"] = df["timestampHistory"].dt.hour
     
+    # Avalia FDS
+    df["isWeekend"] = df["timestampHistoryWeekday"] >= 5 
+    # Classifica os períodos do dia
+    df["dayPeriod"] = _classify_day_period(df)
     return df
 
 
