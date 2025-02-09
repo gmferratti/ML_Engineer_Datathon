@@ -1,0 +1,14 @@
+[flake8]
+max-line-length = 98
+extend-ignore = E203, W503
+exclude =
+    .git,
+    __pycache__,
+    notebooks/,
+    dist/,
+    *.egg-info/,
+    data/,
+    mlruns/
+per-file-ignores =
+    __init__.py:F401
+max-complexity = 10
