@@ -1,2 +1,8 @@
-MLFLOW_TRACKING_URI: "http://localhost:5000"
-SAMPLING_RATE: 1.0
+PROJECT_ID: datathon-globo
+BASE_REGISTRY: s3://mlflow-artifacts
+EXPERIMENT: datathon-experiment
+TEAM: data-science
+MODEL_NAME: recommendation-model
+MLFLOW_REGISTRY_URI: http://localhost:5001
+MLFLOW_TRACKING_URI: http://localhost:5001
+SAMPLING_RATE: 0.1

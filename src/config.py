@@ -1,10 +1,44 @@
+import logging
 import os
-from dotenv import load_dotenv
+from importlib import resources
+
+import mlflow
 import yaml
+from dotenv import load_dotenv
 
 load_dotenv()
 
-ENV = os.getenv("ENV", "dev")
-config_file = os.path.join("src", "configs", f"{ENV}.yaml")
-with open(config_file, "r") as f:
-    CONFIG = yaml.safe_load(f)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+
+def load_config():
+    env = os.getenv("ENV", "dev")
+    logger.info("Ambiente: %s", env)
+    config_package = "src.configs"
+    try:
+        with resources.open_text(config_package, f"{env}.yaml") as file:
+            config = yaml.safe_load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"""Arquivo de configuracao {env}.yaml nao
+             encontrado no pacote {config_package}"""
+        )
+    return env, config
+
+
+ENV, CONFIG = load_config()
+
+
+def get_config(key, default=None):
+    return CONFIG.get(key, default)
+
+
+def configure_mlflow():
+    mlflow.set_tracking_uri(get_config("MLFLOW_TRACKING_URI"))
+    mlflow.set_registry_uri(get_config("MLFLOW_REGISTRY_URI"))
+    mlflow.set_experiment(get_config("EXPERIMENT"))

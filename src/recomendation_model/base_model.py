@@ -1,10 +1,16 @@
+# src/recomendation_model/base_model.py
 from abc import ABC, abstractmethod
 
 
 class BaseRecommender(ABC):
     @abstractmethod
-    def predict(self, client_features, news_features):
-        """Realiza a predicao."""
+    def predict(self, model_input):
+        """
+        Realiza a predicao.
+
+        Args:
+            model_input: Dicionário com client_features e news_features
+        """
         pass
 
     @abstractmethod

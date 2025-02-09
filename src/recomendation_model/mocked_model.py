@@ -1,16 +1,24 @@
-from recomendation_model.base_model import BaseRecommender
+import pandas as pd
+from mlflow.pyfunc import PythonModel
+
+from src.recomendation_model.base_model import BaseRecommender
 
 
 class MockedRecommender(BaseRecommender):
     def __init__(self, **kwargs):
-        # Inicialize parâmetros ou carregue modelo treinado
         self.params = kwargs
 
-    def predict(self, client_features, news_features):
-        # Exemplo simples (pode ser mockado para experimentação)
-        scores = [0.5 for _ in news_features]
-        return scores
+    def predict(self, model_input: pd.DataFrame):
+        """Gera scores baseado nas colunas combinadas"""
+        return [0.5 for _ in range(len(model_input))]
 
     def train(self, X, y):
-        # Lógica de treinamento (pode ser um mock durante prototipação)
         pass
+
+
+class MLflowWrapper(PythonModel):
+    def __init__(self, model):
+        self.model = model
+
+    def predict(self, context, model_input: pd.DataFrame):
+        return self.model.predict(model_input)
