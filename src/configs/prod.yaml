@@ -1,0 +1,2 @@
+MLFLOW_TRACKING_URI: "http://prod-mlflow-server:5000"
+SAMPLING_RATE: 1.0

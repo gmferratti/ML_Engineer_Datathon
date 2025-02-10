@@ -135,3 +135,41 @@ docker-compose.override.yml
 
 # Flyte
 .flyte/
+
+
+# Dados específicos do projeto
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# MLflow específicos
+mlflow.db
+mlartifacts/
+
+# Arquivos gerados pelo Jupyter além do .ipynb_checkpoints
+notebooks/**/*.png
+notebooks/**/*.jpg
+notebooks/**/*.jpeg
+notebooks/**/*.pdf
+notebooks/artifacts/
+
+# VS Code específicos adicionais
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Configurações locais
+local_config.yaml
+*_local.yaml
+
+# Cache do pytest
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Variáveis de ambiente locais adicionais
+.envrc
+.direnv
