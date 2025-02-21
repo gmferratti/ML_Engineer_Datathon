@@ -10,13 +10,16 @@ import unicodedata
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from utils import concatenate_csv_to_df
+
 from constants import (
     cols_to_clean,
-    cols_to_drop,
-    news_num_csv_files,
-    cols_to_clean,
     cols_to_drop)
-from config import SAMPLE_RATE
+
+from feat_settings import (
+    SAMPLE_RATE,
+    NEWS_TEMP_PATH,
+    NEWS_N_CSV_FILES
+)
 
 # Downloading extra dependencies
 nltk.download('stopwords')
@@ -33,7 +36,7 @@ def preprocess_news() -> pd.DataFrame:
     - Remove colunas desnecessárias.
     """
     # Concatena CSVs
-    df_news = concatenate_csv_to_df(news_template_path, news_num_csv_files)
+    df_news = concatenate_csv_to_df(NEWS_TEMP_PATH, NEWS_N_CSV_FILES)
     
     # Faz o sampling dos dados
     df_news = df_news.sample(frac=SAMPLE_RATE, random_state=42)
