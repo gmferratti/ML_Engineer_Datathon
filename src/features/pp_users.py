@@ -3,8 +3,8 @@
 import pandas as pd
 
 from constants import (
-    users_cols_to_explode,
-    users_dtypes,
+    COLS_TO_EXPLODE,
+    USERS_DTYPES,
 )
 
 from feat_settings import (
@@ -36,7 +36,7 @@ def preprocess_users() -> pd.DataFrame:
     df_users = _process_history_columns(df_users)
 
     # Converte colunas iniciais para tipos apropriados
-    df_users = df_users.astype(users_dtypes)
+    df_users = df_users.astype(USERS_DTYPES)
 
     # Converte timestamp e ordena por usuário e data
     df_users = _process_timestamp(df_users)
@@ -62,11 +62,11 @@ def preprocess_users() -> pd.DataFrame:
 def _process_history_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Converte colunas de histórico de string para lista, explode e remove espaços."""
     # Transforma colunas de histórico de string para lista
-    df[users_cols_to_explode] = df[users_cols_to_explode].apply(lambda col: col.str.split(","))
+    df[COLS_TO_EXPLODE] = df[COLS_TO_EXPLODE].apply(lambda col: col.str.split(","))
 
     # Explode o dataframe e remove espaços das strings
-    df = df.explode(users_cols_to_explode)
-    df[users_cols_to_explode] = df[users_cols_to_explode].apply(lambda col: col.str.strip())
+    df = df.explode(COLS_TO_EXPLODE)
+    df[COLS_TO_EXPLODE] = df[COLS_TO_EXPLODE].apply(lambda col: col.str.strip())
 
     return df
 

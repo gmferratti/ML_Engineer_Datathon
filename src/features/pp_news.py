@@ -12,8 +12,8 @@ from nltk.stem import WordNetLemmatizer
 from utils import concatenate_csv_to_df
 
 from constants import (
-    cols_to_clean,
-    cols_to_drop)
+    COLS_TO_CLEAN,
+    COLS_TO_DROP)
 
 from feat_settings import (
     SAMPLE_RATE,
@@ -64,11 +64,11 @@ def preprocess_news() -> pd.DataFrame:
     df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
     
     # Limpa colunas de texto
-    for col in cols_to_clean:
+    for col in COLS_TO_CLEAN:
         df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
     
     # Remove colunas desnecessárias
-    df_news = df_news.drop(columns=cols_to_drop)
+    df_news = df_news.drop(columns=COLS_TO_DROP)
 
     return df_news
 
