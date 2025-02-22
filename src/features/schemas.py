@@ -6,6 +6,7 @@ from mlflow.types.schema import ColSpec, DataType, Schema
 def get_model_signature():
     """Schema dinâmico para features combinadas"""
     return ModelSignature(
+        #TODO: atualizar aqui com as features finalizadas
         inputs=Schema(
             [
                 ColSpec(DataType.string, "user_id"),

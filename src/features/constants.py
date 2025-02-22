@@ -1,25 +1,16 @@
-# NEWS_PATH
-news_template_path = "data/challenge-webmedia-e-globo-2023/itens/itens/itens-parte{}.csv"
-news_num_csv_files = 3
-
 # NEWS_COLS
-cols_to_clean = ["body", "title", "caption"]
-cols_to_drop = [
+COLS_TO_CLEAN = ["body", "title", "caption"]
+COLS_TO_DROP = [
     "local",
     "theme",
     "issued",
     "modified",
     "url",
     "urlExtracted",
-] + cols_to_clean
-
-# USERS_PATH
-users_template_path = "data/challenge-webmedia-e-globo-2023/files/treino/treino_parte{}.csv"
-users_num_csv_files = 6
-cold_start_threshold = 5
+] + COLS_TO_CLEAN
 
 # USERS_COLS
-users_cols_to_explode = [
+COLS_TO_EXPLODE = [
     "history",
     "timestampHistory",
     "numberOfClicksHistory",
@@ -28,7 +19,7 @@ users_cols_to_explode = [
     "pageVisitsCountHistory",
 ]
 
-users_dtypes = {
+USERS_DTYPES = {
     "userId": "object",
     "userType": "category",
     "historySize": "int",
@@ -39,3 +30,62 @@ users_dtypes = {
     "scrollPercentageHistory": "float",
     "pageVisitsCountHistory": "int",
 }
+
+# MIX_COLS
+
+MIX_FEATS_COLS = [
+    "userId",
+    "pageId",
+    "issuedDate",
+    "issuedTime",
+    "issuedDatetime",
+    "timestampHistoryDate",
+    "timestampHistoryTime",
+    "timestampHistoryDatetime",
+    "localState",
+    "localRegion",
+    "themeMain",
+    "themeSub",
+    "coldStart"
+]
+
+STATE_COLS = [
+    "userId",
+    "localState",
+    "countLocalStateUser",
+    "relLocalState",
+    "coldStart"
+]
+
+REGION_COLS = [
+    "userId",
+    "localRegion",
+    "countLocalRegionUser",
+    "relLocalRegion",
+    "coldStart"
+]
+
+THEME_MAIN_COLS = [
+    "userId",
+    "themeMain",
+    "countThemeMainUser",
+    "relThemeMain",
+    "coldStart"
+]
+
+THEME_SUB_COLS = [
+    "userId",
+    "themeSub",
+    "countThemeSubUser",
+    "relThemeSub",
+    "coldStart"
+]
+
+GAP_COLS = [
+    "userId",
+    "pageId",
+    "timeGapDays",
+    "timeGapHours",
+    "timeGapMinutes",
+    "timeGapLessThanOneDay"
+]

@@ -2,15 +2,19 @@
 
 import pandas as pd
 
-from .constants import (
-    cold_start_threshold,
-    users_cols_to_explode,
-    users_dtypes,
-    users_num_csv_files,
-    users_template_path,
+from constants import (
+    COLS_TO_EXPLODE,
+    USERS_DTYPES,
 )
-from .utils import concatenate_csv_to_df
 
+from feat_settings import (
+    SAMPLE_RATE,
+    COLD_START_THRESHOLD,
+    USERS_N_CSV_FILES,
+    USERS_TEMP_PATH,
+)
+
+from utils import concatenate_csv_to_df
 
 def preprocess_users() -> pd.DataFrame:
     """
@@ -22,34 +26,30 @@ def preprocess_users() -> pd.DataFrame:
     - Cria variáveis derivadas (ex: minutos desde o último acesso, flag de cold start).
     - Realiza downcasting das colunas.
     """
-
     # Concatena CSVs
-    df_users = concatenate_csv_to_df(users_template_path, users_num_csv_files)
-
+    df_users = concatenate_csv_to_df(USERS_TEMP_PATH, USERS_N_CSV_FILES)
+    
+    # Faz o sampling dos dados
+    df_users = df_users.sample(frac=SAMPLE_RATE, random_state=42)
+    
     # Processa colunas de histórico (explode e remove espaços)
     df_users = _process_history_columns(df_users)
 
     # Converte colunas iniciais para tipos apropriados
-    df_users = df_users.astype(users_dtypes)
+    df_users = df_users.astype(USERS_DTYPES)
 
     # Converte timestamp e ordena por usuário e data
     df_users = _process_timestamp(df_users)
 
     # Cria variáveis temporais derivadas
     df_users = _extract_time_features(df_users)
-
-    # Cria indicador de fim de semana
-    df_users["isWeekend"] = df_users["timestampHistoryWeekday"] >= 5
-
-    # Classifica os períodos do dia
-    df_users["dayPeriod"] = _classify_day_period(df_users)
-
+    
     # Cria indicador de cold start
-    df_users["coldStart"] = df_users["historySize"] < cold_start_threshold
-
+    df_users["coldStart"] = df_users["historySize"] < COLD_START_THRESHOLD
+    
     # Renomeia a coluna de chave secundária
-    df_users.rename(columns={"history": "historyId"}, inplace=True)
-
+    df_users.rename(columns={"history": "pageId"}, inplace=True)
+    
     # Remove colunas desnecessárias
     df_users.drop(columns=["timestampHistory", "timestampHistory_new"], inplace=True)
 
@@ -62,11 +62,11 @@ def preprocess_users() -> pd.DataFrame:
 def _process_history_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Converte colunas de histórico de string para lista, explode e remove espaços."""
     # Transforma colunas de histórico de string para lista
-    df[users_cols_to_explode] = df[users_cols_to_explode].apply(lambda col: col.str.split(","))
+    df[COLS_TO_EXPLODE] = df[COLS_TO_EXPLODE].apply(lambda col: col.str.split(","))
 
     # Explode o dataframe e remove espaços das strings
-    df = df.explode(users_cols_to_explode)
-    df[users_cols_to_explode] = df[users_cols_to_explode].apply(lambda col: col.str.strip())
+    df = df.explode(COLS_TO_EXPLODE)
+    df[COLS_TO_EXPLODE] = df[COLS_TO_EXPLODE].apply(lambda col: col.str.strip())
 
     return df
 
@@ -88,10 +88,14 @@ def _process_timestamp(df: pd.DataFrame) -> pd.DataFrame:
 def _extract_time_features(df: pd.DataFrame) -> pd.DataFrame:
     """Extrai informações temporais do timestamp."""
     df["timestampHistoryDate"] = df["timestampHistory"].dt.date
-    df["timestampHistoryTime"] = df["timestampHistory"].dt.strftime("%H:%M")
+    df["timestampHistoryTime"] = df["timestampHistory"].dt.strftime("%H:%M:%S")
     df["timestampHistoryWeekday"] = df["timestampHistory"].dt.dayofweek
     df["timestampHistoryHour"] = df["timestampHistory"].dt.hour
-
+    
+    # Avalia FDS
+    df["isWeekend"] = df["timestampHistoryWeekday"] >= 5 
+    # Classifica os períodos do dia
+    df["dayPeriod"] = _classify_day_period(df)
     return df
 
 

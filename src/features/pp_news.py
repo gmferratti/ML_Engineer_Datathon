@@ -3,14 +3,29 @@
 import re
 
 import pandas as pd
-from constants import (
-    cols_to_clean,
-    cols_to_drop,
-    news_num_csv_files,
-    news_template_path,
-)
+import re
+import nltk
+import unicodedata
+
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from utils import concatenate_csv_to_df
 
+from constants import (
+    COLS_TO_CLEAN,
+    COLS_TO_DROP)
+
+from feat_settings import (
+    SAMPLE_RATE,
+    NEWS_TEMP_PATH,
+    NEWS_N_CSV_FILES
+)
+
+# Downloading extra dependencies
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+print("Downloaded NLTK dependencies.")
 
 def preprocess_news() -> pd.DataFrame:
     """
@@ -21,7 +36,10 @@ def preprocess_news() -> pd.DataFrame:
     - Remove colunas desnecessárias.
     """
     # Concatena CSVs
-    df_news = concatenate_csv_to_df(news_template_path, news_num_csv_files)
+    df_news = concatenate_csv_to_df(NEWS_TEMP_PATH, NEWS_N_CSV_FILES)
+    
+    # Faz o sampling dos dados
+    df_news = df_news.sample(frac=SAMPLE_RATE, random_state=42)
 
     # Renomeia coluna de chave primária
     df_news = df_news.rename(columns={"page": "pageId"})
@@ -36,27 +54,21 @@ def preprocess_news() -> pd.DataFrame:
     df_news["urlExtracted"] = df_news["url"].apply(_extract_url_midsection)
 
     # Extrai localidade da URL
-    df_news["local"] = df_news["urlExtracted"].apply(_extract_location)
-    df_news["localState"] = df_news["local"].str.split("/").str[0]
-    df_news["localRegion"] = df_news["local"].str.split("/").str[1]
-
-    print("Esse aí passou!")
-
+    df_news['local'] = df_news['urlExtracted'].apply(_extract_location)
+    df_news['localState'] = df_news['local'].str.split('/').str[0]
+    df_news['localRegion'] = df_news['local'].str.split('/').str[1]
+    
     # Extrai tema da notícia da URL
-    df_news["theme"] = df_news["urlExtracted"].apply(_extract_theme)
-    df_news["themeMain"] = df_news["theme"].str.split("/").str[0]
-    df_news["themeSub"] = df_news["theme"].str.split("/").str[1]
-
-    print("Esse aí passou!")
-
+    df_news['theme'] = df_news['urlExtracted'].apply(_extract_theme)
+    df_news['themeMain'] = df_news['theme'].str.split('/').str[0]
+    df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
+    
     # Limpa colunas de texto
-    for col in cols_to_clean:
+    for col in COLS_TO_CLEAN:
         df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
-
-    print("Esse aí passou!")
-
+    
     # Remove colunas desnecessárias
-    df_news = df_news.drop(columns=cols_to_drop)
+    df_news = df_news.drop(columns=COLS_TO_DROP)
 
     return df_news
 
@@ -92,7 +104,27 @@ def _extract_theme(url_part):
 def _preprocess_text(text):
     """Padroniza e limpa o texto de notícias."""
     if not isinstance(text, str):
-        text = ""
-    text = re.sub(r"\W+", " ", text)
-    text = re.sub(r"\d+", "", text)
-    return text.lower()
+        return ""
+    
+    # Remover acentos
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    
+    # Remover caracteres especiais e números
+    text = re.sub(r'\W+', ' ', text)
+    text = re.sub(r'\d+', '', text)
+    
+    # Converter para minúsculas
+    text = text.lower()
+    
+    # Tokenização
+    words = text.split()
+    
+    # Remover stopwords das tokens
+    stop_words = set(stopwords.words('portuguese'))
+    words = [word for word in words if word not in stop_words]
+    
+    # Lemmatização
+    lemmatizer = WordNetLemmatizer()
+    words = [lemmatizer.lemmatize(word) for word in words]
+    
+    return ' '.join(words) # junta novamente as palavras
