@@ -1,5 +1,8 @@
 - Criar estrutura básica do pipeline de PP (DONE)
 - Implementar PP de usuarios (DONE)
-- Implementar PP de noticias (DOING)
-- Implementar modelagem de noticias
-- Integrar df de noticias e usuarios
+- Implementar PP de noticias (DONE)
+- Implementar pp de features combinadas notícias + usuários (DONE)
+- Proposição final de features
+- Feature selection com base em algum critério estatístico
+- Implementar treino do algoritmo de recomendação
+- Implementar predict do algoritmo de recomendação

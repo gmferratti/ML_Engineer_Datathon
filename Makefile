@@ -4,6 +4,10 @@ PYTHON = python3
 LINTING_PATHS = src/ tests/
 MLFLOW_PORT ?= 5001
 
+#######################################################################################################################################################
+################################################################### SETUP & CONFIG ####################################################################
+#######################################################################################################################################################
+
 # Setup inicial do projeto
 setup: clean install-uv create-env install-env e create-kernel
 
@@ -32,6 +36,13 @@ clean:
 	find . -type d -name ".coverage" -exec rm -rf {} +
 	rm -rf build/ dist/ .eggs/
 
+# Build e publicação
+build:
+	uv build
+
+publish:
+	uv publish
+
 # Linting e formatação
 lint:
 	uv pip install flake8
@@ -47,17 +58,6 @@ check-format:
 	black --check $(LINTING_PATHS)
 	isort --check-only $(LINTING_PATHS)
 
-# Build e publicação
-build:
-	uv build
-
-publish:
-	uv publish
-
-# Pipeline de features
-pp_features:
-	uv run src/features/pipeline.py
-
 # MLflow
 mlflow-server:
 	mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port $(MLFLOW_PORT)
@@ -69,16 +69,21 @@ create-kernel:
 remove-kernel:
 	jupyter kernelspec uninstall datathon -y
 
+#######################################################################################################################################################
+################################################################### PROJECT RUNNING ###################################################################
+#######################################################################################################################################################
 
-# Project
+pp_features:
+	uv run src/features/pipeline.py
+
 train:
-	python src/train/train.py
+	uv run src/train/train.py
 
 predict:
-	python src/predict/predict.py
+	uv run src/predict/predict.py
 
 local_api:
-	python src/api/app.py
+	uv run src/api/app.py
 
 docker_api:
 	docker-compose up --build
