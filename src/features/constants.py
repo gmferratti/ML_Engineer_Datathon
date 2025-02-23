@@ -46,7 +46,15 @@ MIX_FEATS_COLS = [
     "localRegion",
     "themeMain",
     "themeSub",
-    "coldStart"
+    # USED LATER
+    "coldStart",
+    'userType', 
+    'historySize', 
+    'numberOfClicksHistory', 
+    'timeOnPageHistory', 
+    'scrollPercentageHistory', 
+    'pageVisitsCountHistory', 
+    'minutesSinceLastVisit'
 ]
 
 STATE_COLS = [
@@ -88,4 +96,19 @@ GAP_COLS = [
     "timeGapHours",
     "timeGapMinutes",
     "timeGapLessThanOneDay"
+]
+
+FINAL_FEAT_MIX_COLS = [
+    "userId",
+    "pageId",
+    "userType",
+    "historySize",
+    "issuedDatetime",
+    "timestampHistoryDatetime",
+    "numberOfClicksHistory",
+    "timeOnPageHistory",
+    "coldStart",
+    "scrollPercentageHistory",
+    "pageVisitsCountHistory",
+    "minutesSinceLastVisit",
 ]

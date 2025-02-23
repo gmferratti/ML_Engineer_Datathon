@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from sklearn.feature_selection import SelectKBest, f_classif
 
 from constants import (
     MIX_FEATS_COLS,
@@ -7,7 +9,44 @@ from constants import (
     THEME_MAIN_COLS,
     THEME_SUB_COLS,
     GAP_COLS,
+    FINAL_FEAT_MIX_COLS,
 )
+
+def generate_suggested_feats(
+    df_mix,
+    gap_df,
+    state_df,
+    region_df,
+    tm_df,
+    ts_df,
+):
+    """
+    Gera a tabela final agregando as informações de diferentes dimensões.
+
+    Parâmetros:
+        df_mix (DataFrame): Tabela base com as features principais, filtrada pelas colunas definidas em FINAL_FEAT_MIX_COLS.
+        gap_df (DataFrame): Tabela com informações de gap, que deve ser agregada por 'userId' e 'pageId'.
+        state_df (DataFrame): Tabela com informações de estado (STATE_COLS), agregada por 'userId'.
+        region_df (DataFrame): Tabela com informações de região (REGION_COLS), agregada por 'userId'.
+        tm_df (DataFrame): Tabela com informações de tema principal (THEME_MAIN_COLS), agregada por 'userId'.
+        ts_df (DataFrame): Tabela com informações de tema secundário (THEME_SUB_COLS), agregada por 'userId'.
+
+    Retorna:
+        DataFrame: Tabela final com todas as informações agregadas.
+    """
+    # Filtra a base de features finais para garantir que somente as colunas necessárias sejam utilizadas.
+    sug_feats = df_mix[FINAL_FEAT_MIX_COLS].copy()
+
+    # Agrega as informações de gap_df utilizando as chaves 'userId' e 'pageId'
+    sug_feats = sug_feats.merge(gap_df[GAP_COLS], on=["userId", "pageId"], how="left")
+
+    # Agrega as dimensões por 'userId'
+    sug_feats = sug_feats.merge(state_df[["userId", "relLocalState"]], on="userId", how="left")
+    sug_feats = sug_feats.merge(region_df[["userId", "relLocalRegion"]], on="userId", how="left")
+    sug_feats = sug_feats.merge(tm_df[["userId", "relThemeMain"]], on="userId", how="left")
+    sug_feats = sug_feats.merge(ts_df[["userId", "relThemeSub"]], on="userId", how="left")
+
+    return sug_feats
 
 def preprocess_mix_feats(df_news: pd.DataFrame, df_users: pd.DataFrame):
     """
@@ -33,14 +72,13 @@ def preprocess_mix_feats(df_news: pd.DataFrame, df_users: pd.DataFrame):
     """
     df_news, df_users = _process_datetime(df_news, df_users)
     
-    # Merge inline entre usuários e notícias
     df_mix = pd.merge(df_users, df_news, on='pageId', how='inner')[MIX_FEATS_COLS]
     
-    df_mix = _compute_time_gap(df_mix)
-    df_mix = _compute_category_counts(df_mix)
-    gap_df, state_df, region_df, tm_df, ts_df = _split_dataframes(df_mix)
+    df_mix_enriched = _compute_time_gap(df_mix)
+    df_mix_enriched = _compute_category_counts(df_mix_enriched)
+    gap_df, state_df, region_df, tm_df, ts_df = _split_dataframes(df_mix_enriched)
     
-    return gap_df, state_df, region_df, tm_df, ts_df
+    return df_mix, gap_df, state_df, region_df, tm_df, ts_df
 
 def _process_datetime(df_news: pd.DataFrame, df_users: pd.DataFrame):
     """Converte datas e horários e cria os timestamps completos."""
@@ -62,43 +100,43 @@ def _process_datetime(df_news: pd.DataFrame, df_users: pd.DataFrame):
     )
     return df_news, df_users
 
-def _compute_time_gap(df_mix: pd.DataFrame):
-    gap = df_mix['timestampHistoryDatetime'] - df_mix['issuedDatetime']
-    df_mix['timeGapDays'] = gap.dt.days
-    df_mix['timeGapHours'] = gap / pd.Timedelta(hours=1)
-    df_mix['timeGapMinutes'] = gap / pd.Timedelta(minutes=1)
-    df_mix['timeGapLessThanOneDay'] = df_mix['timeGapHours'] <= 24
-    return df_mix
+def _compute_time_gap(df_mix_enriched: pd.DataFrame):
+    gap = df_mix_enriched['timestampHistoryDatetime'] - df_mix_enriched['issuedDatetime']
+    df_mix_enriched['timeGapDays'] = gap.dt.days
+    df_mix_enriched['timeGapHours'] = gap / pd.Timedelta(hours=1)
+    df_mix_enriched['timeGapMinutes'] = gap / pd.Timedelta(minutes=1)
+    df_mix_enriched['timeGapLessThanOneDay'] = df_mix_enriched['timeGapHours'] <= 24
+    return df_mix_enriched
 
-def _compute_category_counts(df_mix: pd.DataFrame, category_columns=None):
+def _compute_category_counts(df_mix_enriched: pd.DataFrame, category_columns=None):
     if category_columns is None:
         category_columns = ['localState', 'localRegion', 'themeMain', 'themeSub']
     for col in category_columns:
         col_title = col[0].upper() + col[1:]
         count_col = f'count{col_title}User'
-        df_mix[count_col] = df_mix.groupby(['userId', col])['pageId'].transform('count')
-    df_mix['totalUserNews'] = df_mix.groupby('userId')['pageId'].transform('count')
+        df_mix_enriched[count_col] = df_mix_enriched.groupby(['userId', col])['pageId'].transform('count')
+    df_mix_enriched['totalUserNews'] = df_mix_enriched.groupby('userId')['pageId'].transform('count')
     for col in category_columns:
         col_title = col[0].upper() + col[1:]
         count_col = f'count{col_title}User'
         rel_col = f'rel{col_title}'
-        df_mix[rel_col] = df_mix[count_col] / df_mix['totalUserNews']
-    return df_mix
+        df_mix_enriched[rel_col] = df_mix_enriched[count_col] / df_mix_enriched['totalUserNews']
+    return df_mix_enriched
 
-def _split_dataframes(df_mix: pd.DataFrame):
-    gap_df = df_mix[GAP_COLS].copy()
+def _split_dataframes(df_mix_enriched: pd.DataFrame):
+    gap_df = df_mix_enriched[GAP_COLS].copy()
     gap_df = gap_df[gap_df["timeGapDays"] >= 0].reset_index(drop=True)
     
-    state_df = df_mix[STATE_COLS].copy()
+    state_df = df_mix_enriched[STATE_COLS].copy()
     state_df = state_df[state_df["countLocalStateUser"] > 0].reset_index(drop=True)
     
-    region_df = df_mix[REGION_COLS].copy()
+    region_df = df_mix_enriched[REGION_COLS].copy()
     region_df = region_df[region_df["countLocalRegionUser"] > 0].reset_index(drop=True)
     
-    tm_df = df_mix[THEME_MAIN_COLS].copy()
+    tm_df = df_mix_enriched[THEME_MAIN_COLS].copy()
     tm_df = tm_df[tm_df["countThemeMainUser"] > 0].reset_index(drop=True)
     
-    ts_df = df_mix[THEME_SUB_COLS].copy()
+    ts_df = df_mix_enriched[THEME_SUB_COLS].copy()
     ts_df = ts_df[ts_df["countThemeSubUser"] > 0].reset_index(drop=True)
     
     return gap_df, state_df, region_df, tm_df, ts_df
