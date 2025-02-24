@@ -54,3 +54,39 @@
 
 # Descrição das Colunas de Notícia
 
+
+
+1. **`page`**
+   - **Descrição:** Número da página da notícia.
+   - **Tipo de Dado:** `int`
+   - **Observação:** Indica a página da notícia.
+
+2. **`url`**
+   - **Descrição:** URL da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Endereço da notícia na web.
+
+3. **`issued`**
+   - **Descrição:** Data de publicação da notícia.
+   - **Tipo de Dado:** `datetime`
+   - **Observação:** Data e hora em que a notícia foi publicada.
+
+4. **`modified`**
+   - **Descrição:** Data de modificação da notícia.
+   - **Tipo de Dado:** `datetime`
+   - **Observação:** Data e hora em que a notícia foi modificada.
+
+5. **`title`**
+   - **Descrição:** Título da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Título da notícia.
+
+6. **`body`**
+   - **Descrição:** Corpo da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Conteúdo principal da notícia.
+
+7. **`caption`**
+   - **Descrição:** Legenda da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Texto de legenda da notícia.
