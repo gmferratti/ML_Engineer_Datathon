@@ -46,15 +46,9 @@ MIX_FEATS_COLS = [
     "localRegion",
     "themeMain",
     "themeSub",
-    # USED LATER
     "coldStart",
     'userType', 
     'historySize', 
-    'numberOfClicksHistory', 
-    'timeOnPageHistory', 
-    'scrollPercentageHistory', 
-    'pageVisitsCountHistory', 
-    'minutesSinceLastVisit'
 ]
 
 STATE_COLS = [
@@ -101,12 +95,7 @@ FINAL_FEAT_MIX_COLS = [
     "historySize",
     "issuedDatetime",
     "timestampHistoryDatetime",
-    "numberOfClicksHistory",
-    "timeOnPageHistory",
     "coldStart",
-    "scrollPercentageHistory",
-    "pageVisitsCountHistory",
-    "minutesSinceLastVisit",
     "localState",
     "localRegion",
     "themeMain",

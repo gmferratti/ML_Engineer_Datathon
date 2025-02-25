@@ -2,6 +2,7 @@
 import os
 from features.pp_news import preprocess_news
 from features.pp_users import preprocess_users
+from features.pp_target import preprocess_target
 from features.pp_mix import preprocess_mix_feats, generate_suggested_feats
 from features.feat_selection import feature_selection
 from feat_settings import (
@@ -43,6 +44,13 @@ def pre_process_data() -> None:
     users_path = os.path.join(DATA_PATH, "features", "users_feats.parquet")
     logger.info(f"Saving pre-processed users parquet at {users_path}...")
     df_users.to_parquet(users_path)
+    
+    # Criando target a partir do df_users
+    logger.info("Pre-processing target values...")
+    df_target = preprocess_target(df_users)
+    target_path = os.path.join(DATA_PATH, "features", "target.parquet")
+    logger.info(f"Saving pre-processed target parquet at {target_path}...")
+    df_target.to_parquet(target_path)
     
     # Geração das mix feats a partir dos dataframes de news e users
     logger.info("Generating mix feats...")

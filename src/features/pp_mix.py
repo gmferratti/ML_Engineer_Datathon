@@ -71,10 +71,10 @@ def preprocess_mix_feats(df_news: pd.DataFrame, df_users: pd.DataFrame):
         - ts_df: DataFrame com informações de 'themeSub'.
     """
     df_news, df_users = _process_datetime(df_news, df_users)
-    
     df_mix = pd.merge(df_users, df_news, on='pageId', how='inner')[MIX_FEATS_COLS]
-    
+
     df_mix_enriched = _compute_time_gap(df_mix)
+    
     df_mix_enriched = _compute_category_counts(df_mix_enriched)
     gap_df, state_df, region_df, tm_df, ts_df = _split_dataframes(df_mix_enriched)
     
@@ -166,7 +166,5 @@ def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, user_id: 
     unread = unread[['userId', 'pageId']].reset_index(drop=True)
     return unread
 
-# Processing everything
-#(gap_df, state_df, region_df, tm_df, ts_df) = preprocess_mix_feats(news, users)
 # Exemplo de chamada na API para um único usuário:
 #unread_news_for_user = _get_unread_news_for_user(news, users, user_id='ffe133162533bd67689c667be6c302b7342f8a682d28d7')

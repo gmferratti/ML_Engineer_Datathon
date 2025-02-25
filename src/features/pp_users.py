@@ -53,14 +53,10 @@ def preprocess_users() -> pd.DataFrame:
     # Remove colunas desnecessárias
     df_users.drop(columns=["timestampHistory", "timestampHistory_new"], inplace=True)
 
-    # Cria variável de target
-    df_users = _create_target(df_users)
-
     # Realiza o downcasting das colunas numéricas
     df_users = _downcast_columns(df_users)
 
     return df_users
-
 
 def _process_history_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Converte colunas de histórico de string para lista, explode e remove espaços."""
@@ -122,7 +118,4 @@ def _downcast_columns(df: pd.DataFrame) -> pd.DataFrame:
     df["minutesSinceLastVisit"] = pd.to_numeric(df["minutesSinceLastVisit"], downcast="float")
     df["timestampHistoryWeekday"] = df["timestampHistoryWeekday"].astype("int16")
     df["timestampHistoryHour"] = df["timestampHistoryHour"].astype("int16")
-    return df
-
-def _create_target(df):
     return df
