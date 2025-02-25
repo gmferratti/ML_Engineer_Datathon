@@ -58,7 +58,6 @@ def preprocess_users() -> pd.DataFrame:
 
     return df_users
 
-
 def _process_history_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Converte colunas de histórico de string para lista, explode e remove espaços."""
     # Transforma colunas de histórico de string para lista

@@ -11,7 +11,7 @@ SAMPLE_RATE = 0.10
 DT_TODAY = pd.Timestamp.today().date()
 TODAY = DT_TODAY.strftime('%Y-%m-%d')
 
-# PATHS
+# MAIN_CONTAINER DATA PATH
 
 LOCAL_DATA_PATH = "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_05/ML_Engineer_Datathon/data/processed_data"
 REMOTE_DATA_PATH = "s3://..."
