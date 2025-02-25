@@ -46,7 +46,9 @@ MIX_FEATS_COLS = [
     "localRegion",
     "themeMain",
     "themeSub",
-    "coldStart"
+    "coldStart",
+    'userType', 
+    'historySize', 
 ]
 
 STATE_COLS = [
@@ -54,7 +56,6 @@ STATE_COLS = [
     "localState",
     "countLocalStateUser",
     "relLocalState",
-    "coldStart"
 ]
 
 REGION_COLS = [
@@ -62,7 +63,6 @@ REGION_COLS = [
     "localRegion",
     "countLocalRegionUser",
     "relLocalRegion",
-    "coldStart"
 ]
 
 THEME_MAIN_COLS = [
@@ -70,7 +70,6 @@ THEME_MAIN_COLS = [
     "themeMain",
     "countThemeMainUser",
     "relThemeMain",
-    "coldStart"
 ]
 
 THEME_SUB_COLS = [
@@ -78,7 +77,6 @@ THEME_SUB_COLS = [
     "themeSub",
     "countThemeSubUser",
     "relThemeSub",
-    "coldStart"
 ]
 
 GAP_COLS = [
@@ -88,4 +86,18 @@ GAP_COLS = [
     "timeGapHours",
     "timeGapMinutes",
     "timeGapLessThanOneDay"
+]
+
+FINAL_FEAT_MIX_COLS = [
+    "userId",
+    "pageId",
+    "userType",
+    "historySize",
+    "issuedDatetime",
+    "timestampHistoryDatetime",
+    "coldStart",
+    "localState",
+    "localRegion",
+    "themeMain",
+    "themeSub",
 ]

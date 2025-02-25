@@ -64,8 +64,10 @@ def preprocess_news() -> pd.DataFrame:
     df_news['themeSub'] = df_news['theme'].str.split('/').str[1]
     
     # Limpa colunas de texto
-    for col in COLS_TO_CLEAN:
-        df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
+    # for col in COLS_TO_CLEAN:
+    #     df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
+    
+    # Obs. Não estamos usando as colunas de texto para nada, somente URL
     
     # Remove colunas desnecessárias
     df_news = df_news.drop(columns=COLS_TO_DROP)
