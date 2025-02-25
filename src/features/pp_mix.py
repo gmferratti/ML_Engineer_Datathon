@@ -41,10 +41,10 @@ def generate_suggested_feats(
     sug_feats = sug_feats.merge(gap_df[GAP_COLS], on=["userId", "pageId"], how="left")
 
     # Agrega as dimensões por 'userId'
-    sug_feats = sug_feats.merge(state_df[["userId", "relLocalState"]], on="userId", how="left")
-    sug_feats = sug_feats.merge(region_df[["userId", "relLocalRegion"]], on="userId", how="left")
-    sug_feats = sug_feats.merge(tm_df[["userId", "relThemeMain"]], on="userId", how="left")
-    sug_feats = sug_feats.merge(ts_df[["userId", "relThemeSub"]], on="userId", how="left")
+    sug_feats = sug_feats.merge(state_df, on=["userId","localState"], how="left")
+    sug_feats = sug_feats.merge(region_df, on=["userId","localRegion"], how="left")
+    sug_feats = sug_feats.merge(tm_df, on=["userId","themeMain"], how="left")
+    sug_feats = sug_feats.merge(ts_df, on=["userId","themeSub"], how="left")
 
     return sug_feats
 

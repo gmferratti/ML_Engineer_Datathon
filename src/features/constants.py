@@ -62,7 +62,6 @@ STATE_COLS = [
     "localState",
     "countLocalStateUser",
     "relLocalState",
-    "coldStart"
 ]
 
 REGION_COLS = [
@@ -70,7 +69,6 @@ REGION_COLS = [
     "localRegion",
     "countLocalRegionUser",
     "relLocalRegion",
-    "coldStart"
 ]
 
 THEME_MAIN_COLS = [
@@ -78,7 +76,6 @@ THEME_MAIN_COLS = [
     "themeMain",
     "countThemeMainUser",
     "relThemeMain",
-    "coldStart"
 ]
 
 THEME_SUB_COLS = [
@@ -86,7 +83,6 @@ THEME_SUB_COLS = [
     "themeSub",
     "countThemeSubUser",
     "relThemeSub",
-    "coldStart"
 ]
 
 GAP_COLS = [
@@ -111,4 +107,8 @@ FINAL_FEAT_MIX_COLS = [
     "scrollPercentageHistory",
     "pageVisitsCountHistory",
     "minutesSinceLastVisit",
+    "localState",
+    "localRegion",
+    "themeMain",
+    "themeSub",
 ]
