@@ -9,8 +9,8 @@ def get_model_signature():
         #TODO: atualizar aqui com as features finalizadas
         inputs=Schema(
             [
-                ColSpec(DataType.string, "user_id"),
-                ColSpec(DataType.string, "news_id"),
+                ColSpec(DataType.string, "userId"),
+                ColSpec(DataType.string, "pageId"),
                 ColSpec(DataType.double, "user_feat1"),
                 ColSpec(DataType.double, "user_feat2"),
                 ColSpec(DataType.double, "news_feat1"),
@@ -26,8 +26,8 @@ def create_mock_input_example():
     return pd.DataFrame(
         [
             {
-                "user_id": "user_123",
-                "news_id": "news_456",
+                "userId": "user_123",
+                "pageId": "news_456",
                 "user_feat1": 0.5,
                 "user_feat2": 0.3,
                 "news_feat1": 0.8,

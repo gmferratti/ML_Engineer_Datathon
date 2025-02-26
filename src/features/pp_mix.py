@@ -9,12 +9,11 @@ from constants import (
     THEME_MAIN_COLS,
     THEME_SUB_COLS,
     GAP_COLS,
-    FINAL_FEAT_MIX_COLS,
+    FINAL_MIX_FEAT_COLS,
 )
 
 def generate_suggested_feats(
     df_mix,
-    gap_df,
     state_df,
     region_df,
     tm_df,
@@ -24,8 +23,7 @@ def generate_suggested_feats(
     Gera a tabela final agregando as informações de diferentes dimensões.
 
     Parâmetros:
-        df_mix (DataFrame): Tabela base com as features principais, filtrada pelas colunas definidas em FINAL_FEAT_MIX_COLS.
-        gap_df (DataFrame): Tabela com informações de gap, que deve ser agregada por 'userId' e 'pageId'.
+        df_mix (DataFrame): Tabela base com as features principais, filtrada pelas colunas definidas em FINAL_MIX_FEAT_COLS.
         state_df (DataFrame): Tabela com informações de estado (STATE_COLS), agregada por 'userId'.
         region_df (DataFrame): Tabela com informações de região (REGION_COLS), agregada por 'userId'.
         tm_df (DataFrame): Tabela com informações de tema principal (THEME_MAIN_COLS), agregada por 'userId'.
@@ -35,12 +33,9 @@ def generate_suggested_feats(
         DataFrame: Tabela final com todas as informações agregadas.
     """
     # Filtra a base de features finais para garantir que somente as colunas necessárias sejam utilizadas.
-    sug_feats = df_mix[FINAL_FEAT_MIX_COLS].copy()
+    sug_feats = df_mix[FINAL_MIX_FEAT_COLS].copy()
 
-    # Agrega as informações de gap_df utilizando as chaves 'userId' e 'pageId'
-    sug_feats = sug_feats.merge(gap_df[GAP_COLS], on=["userId", "pageId"], how="left")
-
-    # Agrega as dimensões por 'userId'
+    # Agrega as dimensões por 'userId'["userId", "pageId"]
     sug_feats = sug_feats.merge(state_df, on=["userId","localState"], how="left")
     sug_feats = sug_feats.merge(region_df, on=["userId","localRegion"], how="left")
     sug_feats = sug_feats.merge(tm_df, on=["userId","themeMain"], how="left")
@@ -142,7 +137,7 @@ def _split_dataframes(df_mix_enriched: pd.DataFrame):
     return gap_df, state_df, region_df, tm_df, ts_df
 
 #TODO: ver melhor local para esta função. Fiz aqui porque já estava no jeito.
-def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, user_id: str) -> pd.DataFrame:
+def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, userId: str) -> pd.DataFrame:
     """
     Retorna um DataFrame com as notícias não lidas para um único usuário.
 
@@ -152,7 +147,7 @@ def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, user_id: 
         DataFrame com as notícias disponíveis.
     users : pd.DataFrame
         DataFrame com o histórico completo dos usuários.
-    user_id : str
+    userId : str
         Identificador do usuário para o qual se deseja obter as notícias não lidas.
 
     Retorna:
@@ -160,11 +155,11 @@ def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, user_id: 
     pd.DataFrame
         DataFrame com as notícias que o usuário ainda não leu, com a coluna 'userId' adicionada.
     """
-    read_pages = users.loc[users['userId'] == user_id, 'pageId'].unique()
+    read_pages = users.loc[users['userId'] == userId, 'pageId'].unique()
     unread = news[~news['pageId'].isin(read_pages)].copy()
-    unread['userId'] = user_id
+    unread['userId'] = userId
     unread = unread[['userId', 'pageId']].reset_index(drop=True)
     return unread
 
 # Exemplo de chamada na API para um único usuário:
-#unread_news_for_user = _get_unread_news_for_user(news, users, user_id='ffe133162533bd67689c667be6c302b7342f8a682d28d7')
+#unread_news_for_user = _get_unread_news_for_user(news, users, userId='ffe133162533bd67689c667be6c302b7342f8a682d28d7')

@@ -1,39 +1,48 @@
 import pandas as pd
 import numpy as np
+from constants import TARGET_INIT_COLS, TARGET_FINAL_COLS
 
-def preprocess_target(df_users: pd.DataFrame) -> pd.DataFrame:
-    """Gera a coluna TARGET padronizada de forma menos sensível a outliers (robust scaling)."""
-    agg_df = df_users.groupby('userId', as_index=False).agg({
-        'numberOfClicksHistory': 'sum',
-        'timeOnPageHistory': 'sum',
-        'scrollPercentageHistory': 'mean',
-        'pageVisitsCountHistory': 'sum',
-        'minutesSinceLastVisit': 'mean'
-    })
+import pandas as pd
+import numpy as np
+from constants import TARGET_INIT_COLS, TARGET_FINAL_COLS
+
+def preprocess_target(
+    df_users: pd.DataFrame,
+    gap_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Gera a coluna TARGET para medir o engajamento por par usuário/página."""
     
-    # Cria a coluna TARGET que é um score de engajamento ponderado
-    agg_df['TARGET'] = (
-        agg_df['numberOfClicksHistory']
-        + (agg_df['timeOnPageHistory'] / 500)
-        + agg_df['scrollPercentageHistory']
-        + (agg_df['pageVisitsCountHistory'] * 2)
-        - (agg_df['minutesSinceLastVisit'] / 50)
-    )
-    
-    # Calcula a mediana dos valores de 'TARGET'
-    median_val = agg_df['TARGET'].median()
+    # Mescla os DataFrames com base em userId e pageId e seleciona as colunas iniciais necessárias
+    target_df = df_users.merge(gap_df, on=["userId", "pageId"])[TARGET_INIT_COLS]
 
-    # Calcula o intervalo interquartil (IQR)
-    iqr_val = agg_df['TARGET'].quantile(0.75) - agg_df['TARGET'].quantile(0.25)
+    # Componentes do score base
+    clicks_component = target_df['numberOfClicksHistory']
+    time_component = 1.5 * (target_df['timeOnPageHistory'] / 1000)
+    scroll_component = target_df['scrollPercentageHistory']
+    recency_penalty = target_df['minutesSinceLastVisit'] / 60
 
-    # Se o IQR for zero (todos os valores iguais, por exemplo), apenas subtrai a mediana
-    # Caso contrário, padroniza (robust scaling) subtraindo a mediana e dividindo pelo IQR
+    # Cálculo do score base
+    base_score = clicks_component + time_component + scroll_component - recency_penalty
+
+    # Fator para recompensar usuários com maior historySize (normalizado pela média, 130)
+    history_factor = target_df['historySize'] / 130
+
+    # Fator penalizador para o gap de tempo: quanto menor o gap, maior o score
+    gap_factor = 1 / (1 + target_df['timeGapDays'] / 50)
+
+    # Calcula o TARGET combinando os componentes, a recompensa por historySize e a penalização pelo timeGapDays
+    target_df['TARGET'] = base_score * history_factor * gap_factor
+
+    # Padroniza TARGET utilizando robust scaling (subtrai a mediana e divide pelo IQR)
+    median_val = target_df['TARGET'].median()
+    iqr_val = target_df['TARGET'].quantile(0.75) - target_df['TARGET'].quantile(0.25)
+
     if iqr_val == 0:
-        agg_df['TARGET'] = agg_df['TARGET'] - median_val
+        target_df['TARGET'] = target_df['TARGET'] - median_val
     else:
-        agg_df['TARGET'] = (agg_df['TARGET'] - median_val) / iqr_val
+        target_df['TARGET'] = (target_df['TARGET'] - median_val) / iqr_val
 
-    # Mescla os valores padronizados de 'TARGET' de volta ao DataFrame original
-    target_df = df_users.merge(agg_df[['userId', 'TARGET']], on='userId', how='left')
+    # Mantém apenas as colunas essenciais do dataframe de target
+    target_df = target_df[TARGET_FINAL_COLS]
 
     return target_df

@@ -3,24 +3,24 @@ from typing import List, Dict
 
 
 def get_client_features(
-    user_id: str,
+    userId: str,
     clients_features_df: pd.DataFrame
 ) -> Dict:
     return (
         clients_features_df[
-            clients_features_df["userId"] == user_id
+            clients_features_df["userId"] == userId
         ].to_dict(orient="records")
     )[0]
 
 
 def get_non_viewed_news(
-    user_id: str,
+    userId: str,
     news_features_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Pega as noticias que o usuario ainda nao viu.
 
     Args:
-        user_id (str): ID do usuario.
+        userId (str): ID do usuario.
         news_features_df (DataFrame): DataFrame com as features das noticias.
 
     Returns:
