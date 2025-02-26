@@ -76,6 +76,7 @@ remove-kernel:
 pp_features:
 	uv run src/features/pipeline.py
 
+# TODO: fazer funcionar com o MLFlow
 # train:
 # 	uv run src/train/train.py
 

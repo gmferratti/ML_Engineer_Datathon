@@ -111,14 +111,14 @@ KEY_FEAT_COLS = [
     "timestampHistoryDatetime", # Data de consumo da notícia pelo usuário
 ]
 
-SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + [
+SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + CATEGORY_COLS + [
     "userType", # Se o usuário está logado ou não
     "coldStart", # Flag que indica se o usuário é ou não novo na plataforma (coldStart)
     "relLocalState", # Percentual relativo do consumo de notícias daquele estado entre todas as notícias consumidas pelo usuário
     "relLocalRegion", # Percentual relativo do consumo de notícias daquela região entre todas as notícias consumidas pelo usuário
     "relThemeMain", # Percentual relativo do consumo de notícias daquele tema entre todas as notícias consumidas pelo usuário
     "relThemeSub", # Percentual relativo do consumo de notícias daquele subtema entre todas as notícias consumidas pelo usuário
-] + CATEGORY_COLS
+] 
 
 TARGET_INIT_COLS = [
     "userId", 

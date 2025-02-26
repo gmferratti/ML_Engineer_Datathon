@@ -10,36 +10,50 @@ from config import logger
 
 def prepare_features(raw_data):
     """
-    Prepara os dados para treino sem a seleção de features por alta correlação.
+    Prepara os dados para treino sem a seleção de features por alta correlação, 
+    utilizando frequency encoding para variáveis categóricas, mas mantendo os valores originais.
     
     Passos:
       1. Separar target e features (mantendo os identificadores para o merge).
       2. Dividir os dados em treino e teste.
-      3. Aplicar one-hot encoding nas variáveis categóricas (exceto os identificadores).
+      3. Para cada variável categórica (exceto os identificadores), 
+         criar uma nova coluna com o frequency encoding (com sufixo '_freq'),
+         mantendo a coluna original inalterada.
+         Armazenar o dicionário de mapeamento (de-para) em um dicionário.
       4. Remover os identificadores ('userId' e 'pageId') dos conjuntos de treino e teste.
     """
-    logger.info("Separating features from target...")
+    logger.info("Separando features do target...")
     # 1. Separar target e features mantendo os identificadores para o merge
     y = raw_data[['userId', 'pageId', 'TARGET']]
     X = raw_data.drop(columns=['TARGET'])
     
-    logger.info("Train and test splitting...")
+    logger.info("Dividindo dados em treino e teste...")
     # 2. Dividir os dados em treino e teste (ex.: 70% treino, 30% teste)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
-    logger.info("One-hot encoding...")
-    # 3. One-hot encoding para variáveis categóricas, excluindo 'userId' e 'pageId'
+    # Lista de colunas categóricas, excluindo os identificadores
     cat_cols = [col for col in X_train.select_dtypes(include=['object', 'category']).columns 
-                if col not in ['userId', 'pageId']]
+                if col not in ['userId', 'pageId', "userType"]]
     
-    X_train = pd.get_dummies(X_train, columns=cat_cols, drop_first=True)
-    X_test = pd.get_dummies(X_test, columns=cat_cols, drop_first=True)
+    # Dicionário para armazenar os mapeamentos de cada coluna
+    encoder_mapping = {}
     
-    # Alinha as colunas de treino e teste (garante que ambos tenham as mesmas features)
-    X_train, X_test = X_train.align(X_test, join='left', axis=1, fill_value=0)
+    logger.info("Aplicando Frequency Encoding (criando colunas adicionais) nas variáveis categóricas...")
+    # 3. Para cada coluna categórica, calcula a frequência e cria nova coluna com o encoded
+    for col in cat_cols:
+        # Calcula a frequência relativa para cada categoria no conjunto de treino
+        freq_encoding = X_train[col].value_counts(normalize=True)
+        # Armazena o mapeamento original (de texto para frequência) para a coluna
+        encoder_mapping[col] = freq_encoding.to_dict()
+        
+        new_col = f"{col}_freq"
+        # Cria a coluna com os valores codificados para treino
+        X_train[new_col] = X_train[col].map(freq_encoding)
+        # Para o conjunto de teste, utiliza o mesmo mapeamento; valores desconhecidos são preenchidos com 0
+        X_test[new_col] = X_test[col].map(freq_encoding).astype(float).fillna(0)
     
-    logger.info("Removing key identifiers...")
-    # 4. Remover os identificadores, que não serão utilizados como features
+    logger.info("Removendo identificadores...")
+    # 4. Remover os identificadores que não serão utilizados como features
     X_train_reduced = X_train.drop(columns=['userId', 'pageId'], errors='ignore')
     X_test_reduced = X_test.drop(columns=['userId', 'pageId'], errors='ignore')
     
@@ -47,18 +61,20 @@ def prepare_features(raw_data):
         'X_train': X_train_reduced,
         'X_test': X_test_reduced,
         'y_train': y_train['TARGET'],
-        'y_test': y_test['TARGET']
+        'y_test': y_test['TARGET'],
+        'encoder_mapping': encoder_mapping
     }
     
     return trusted_data
 
+
 def load_train_data():
     """Carrega os dados de treino."""
-    
-    # TODO: Aqui eu tenho que dar split no que é feature de notícia e de usuário
-    return pd.DataFrame(), pd.DataFrame()
+    X_train = pd.read_parquet("data/processed_data/train/X_train.parquet")
+    y_train = pd.read_parquet("data/processed_data/train/y_train.parquet")
+    return X_train, y_train
 
-# OPCIONAL: Somente para auxiliar no processo de feature selection.
+# OPCIONAL: Somente para auxiliar no processo de feature selection, eliminando features com alta correlação
 def feature_selection(
     suggested_feats, 
     df_target, 
