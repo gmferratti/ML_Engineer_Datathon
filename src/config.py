@@ -22,7 +22,7 @@ logger.setLevel(logging.INFO)
 def load_config():
     env = os.getenv("ENV", "dev")
     logger.info("Ambiente: %s", env)
-    config_package = "src.configs"
+    config_package = "configs"
     try:
         with resources.open_text(config_package, f"{env}.yaml") as file:
             config = yaml.safe_load(file)
@@ -34,7 +34,7 @@ def load_config():
     return env, config
 
 
-#ENV, CONFIG = load_config()
+ENV, CONFIG = load_config()
 
 
 def get_config(key, default=None):

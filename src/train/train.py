@@ -1,17 +1,16 @@
 from typing import Dict
-
 import mlflow
 
-from src.data.data_loader import get_evaluation_data
-from src.evaluation.utils import evaluate_model
-from src.recomendation_model.base_model import BaseRecommender
+from data.data_loader import get_evaluation_data
+from evaluation.utils import evaluate_model
+from recomendation_model.base_model import BaseRecommender
 
-from ..config import configure_mlflow, get_config
-from ..recomendation_model.mocked_model import MockedRecommender
-from .utils import load_train_data
+from config import configure_mlflow, get_config
+from recomendation_model.mocked_model import MockedRecommender
+from utils import load_train_data
 
 
-def train_model(model_params: Dict) -> BaseRecommender:
+def train_model(model_params : Dict = {}) -> BaseRecommender:
     """Treina o modelo de recomendacao.
 
     Args:

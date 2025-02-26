@@ -15,7 +15,7 @@ def predict_for_userId(
 ) -> List[str]:
     # Obtém features combinadas de forma dinâmica
     client_features = get_client_features(userId, clients_features_df).to_frame().T
-    non_viewed_news = get_non_viewed_news(userId, news_features_df)
+    non_viewed_news = get_non_viewed_news(userId, news_features_df, clients_features_df)
 
     # Para cada noticia combina com as features do usuario
     model_input = non_viewed_news.assign(userId=userId).merge(

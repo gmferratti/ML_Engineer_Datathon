@@ -136,30 +136,5 @@ def _split_dataframes(df_mix_enriched: pd.DataFrame):
     
     return gap_df, state_df, region_df, tm_df, ts_df
 
-#TODO: ver melhor local para esta função. Fiz aqui porque já estava no jeito.
-def _get_unread_news_for_user(news: pd.DataFrame, users: pd.DataFrame, userId: str) -> pd.DataFrame:
-    """
-    Retorna um DataFrame com as notícias não lidas para um único usuário.
-
-    Parâmetros:
-    -----------
-    news : pd.DataFrame
-        DataFrame com as notícias disponíveis.
-    users : pd.DataFrame
-        DataFrame com o histórico completo dos usuários.
-    userId : str
-        Identificador do usuário para o qual se deseja obter as notícias não lidas.
-
-    Retorna:
-    --------
-    pd.DataFrame
-        DataFrame com as notícias que o usuário ainda não leu, com a coluna 'userId' adicionada.
-    """
-    read_pages = users.loc[users['userId'] == userId, 'pageId'].unique()
-    unread = news[~news['pageId'].isin(read_pages)].copy()
-    unread['userId'] = userId
-    unread = unread[['userId', 'pageId']].reset_index(drop=True)
-    return unread
-
 # Exemplo de chamada na API para um único usuário:
 #unread_news_for_user = _get_unread_news_for_user(news, users, userId='ffe133162533bd67689c667be6c302b7342f8a682d28d7')
