@@ -7,6 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from lightgbm import LGBMRegressor
 from config import logger
+from constants import TRAIN_COLS
 
 def prepare_features(raw_data):
     """
@@ -33,7 +34,7 @@ def prepare_features(raw_data):
     
     # Lista de colunas categóricas, excluindo os identificadores
     cat_cols = [col for col in X_train.select_dtypes(include=['object', 'category']).columns 
-                if col not in ['userId', 'pageId', "userType"]]
+                if col not in ['userId', 'pageId']]
     
     # Dicionário para armazenar os mapeamentos de cada coluna
     encoder_mapping = {}
@@ -45,12 +46,11 @@ def prepare_features(raw_data):
         freq_encoding = X_train[col].value_counts(normalize=True)
         # Armazena o mapeamento original (de texto para frequência) para a coluna
         encoder_mapping[col] = freq_encoding.to_dict()
-        
-        new_col = f"{col}_freq"
         # Cria a coluna com os valores codificados para treino
-        X_train[new_col] = X_train[col].map(freq_encoding)
+        X_train[col] = X_train[col].map(freq_encoding)
         # Para o conjunto de teste, utiliza o mesmo mapeamento; valores desconhecidos são preenchidos com 0
-        X_test[new_col] = X_test[col].map(freq_encoding).astype(float).fillna(0)
+        X_test[col] = X_test[col].map(freq_encoding).astype(float).fillna(0)
+        
     
     logger.info("Removendo identificadores...")
     # 4. Remover os identificadores que não serão utilizados como features
@@ -58,8 +58,8 @@ def prepare_features(raw_data):
     X_test_reduced = X_test.drop(columns=['userId', 'pageId'], errors='ignore')
     
     trusted_data = {
-        'X_train': X_train_reduced,
-        'X_test': X_test_reduced,
+        'X_train': X_train_reduced[TRAIN_COLS],
+        'X_test': X_test_reduced[TRAIN_COLS],
         'y_train': y_train['TARGET'],
         'y_test': y_test['TARGET'],
         'encoder_mapping': encoder_mapping
@@ -74,7 +74,7 @@ def load_train_data():
     y_train = pd.read_parquet("data/processed_data/train/y_train.parquet")
     return X_train, y_train
 
-# OPCIONAL: Somente para auxiliar no processo de feature selection, eliminando features com alta correlação
+# OPCIONAL: Para auxiliar no processo de seleção de features, eliminando features com alta correlação
 def feature_selection(
     suggested_feats, 
     df_target, 
