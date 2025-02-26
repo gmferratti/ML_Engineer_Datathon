@@ -88,7 +88,6 @@ FINAL_MIX_FEAT_COLS = [
     "userId",
     "pageId",
     "userType",
-    "historySize",
     "issuedDatetime",
     "timestampHistoryDatetime",
     "coldStart",
