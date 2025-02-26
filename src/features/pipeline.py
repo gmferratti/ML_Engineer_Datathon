@@ -4,7 +4,6 @@ from features.pp_news import preprocess_news
 from features.pp_users import preprocess_users
 from features.pp_target import preprocess_target
 from features.pp_mix import preprocess_mix_feats, generate_suggested_feats
-from features.feat_selection import feature_selection
 from feat_settings import (
     FLAG_REMOTE,
     LOCAL_DATA_PATH, 
@@ -16,10 +15,10 @@ def pre_process_data() -> None:
     """
     Executa o pipeline de feature engineering:
     1. Pré-processa as informações de news e users.
-    2. Gera as mix feats e salva os respectivos arquivos parquet.
-    3. Monta as suggested features a partir das dimensões.
-    4. Valida a seleção das features para gerar um conjunto final.
-    5. Salva o DataFrame final em parquet.
+    2. Gera as mix feats combinando news e users.
+    3. Propõe uma sugestão inicial de features.
+    4. Valida a seleção das features para gerar o conjunto final.
+    5. Salva o DF final de features em parquet.
     """
     # Define o caminho dos dados com base na flag de execução remota ou local
     if FLAG_REMOTE:
@@ -45,13 +44,6 @@ def pre_process_data() -> None:
     logger.info(f"Saving pre-processed users parquet at {users_path}...")
     df_users.to_parquet(users_path)
     
-    # Criando target a partir do df_users
-    logger.info("Pre-processing target values...")
-    df_target = preprocess_target(df_users)
-    target_path = os.path.join(DATA_PATH, "features", "target.parquet")
-    logger.info(f"Saving pre-processed target parquet at {target_path}...")
-    df_target.to_parquet(target_path)
-    
     # Geração das mix feats a partir dos dataframes de news e users
     logger.info("Generating mix feats...")
     # Supondo que preprocess_mix_feats retorne: mix_df, gap_df, state_df, region_df, tm_df, ts_df
@@ -74,20 +66,24 @@ def pre_process_data() -> None:
     
     # Monta as suggested features a partir dos dataframes das diferentes dimensões
     logger.info("Assembling suggested features df...")
-    suggested_feats = generate_suggested_feats(mix_df, gap_df, state_df, region_df, tm_df, ts_df)
+    suggested_feats = generate_suggested_feats(mix_df, state_df, region_df, tm_df, ts_df)
     suggested_feats_path = os.path.join(DATA_PATH, "features", "suggested_feats.parquet")
     suggested_feats.to_parquet(suggested_feats_path)
     logger.info(f"Suggested features DF saved at {suggested_feats_path}")
-
-    # Validação da seleção das features para compor as features finais
-    logger.info("Validating feature selection...")
-    # final_feats = validate_features(suggested_feats)
+    
+    # Criando target
+    logger.info("Pre-processing target values...")
+    df_target = preprocess_target(df_users, gap_df)
+    target_path = os.path.join(DATA_PATH, "features", "target.parquet")
+    logger.info(f"Saving pre-processed target parquet at {target_path}...")
+    df_target.to_parquet(target_path)
     
     # Salva o DataFrame final com as features selecionadas
-    # logger.info("Assembling final features DF...")
-    # final_feats_path = os.path.join(DATA_PATH, "features", "final_feats.parquet")
-    # final_feats.to_parquet(final_feats_path)
-    # logger.info(f"Final features DF saved at {final_feats_path}")
+    logger.info("Assembling final features DF with target...")
+    final_feats = suggested_feats.merge(df_target, on=["userId", "pageId"])
+    final_feats_path = os.path.join(DATA_PATH, "features", "final_feats_with_target.parquet")
+    final_feats.to_parquet(final_feats_path)
+    logger.info(f"Final features DF saved at {final_feats_path}")
     
     logger.info("Pre-processing complete!")
 

@@ -3,32 +3,44 @@ from typing import List, Dict
 
 
 def get_client_features(
-    user_id: str,
+    userId: str,
     clients_features_df: pd.DataFrame
 ) -> Dict:
     return (
         clients_features_df[
-            clients_features_df["userId"] == user_id
+            clients_features_df["userId"] == userId
         ].to_dict(orient="records")
     )[0]
 
 
 def get_non_viewed_news(
-    user_id: str,
-    news_features_df: pd.DataFrame
+    userId: str,
+    news_features_df: pd.DataFrame,
+    clients_features_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Pega as noticias que o usuario ainda nao viu.
 
     Args:
-        user_id (str): ID do usuario.
+        userId (str): ID do usuario.
         news_features_df (DataFrame): DataFrame com as features das noticias.
+        clients_features_df (DataFrame): DataFrame com o histórico completo dos usuários.
 
     Returns:
         DataFrame: DataFrame com as noticias que o usuario ainda nao viu.
     """
-    # TODO: Implementar logica
-    return news_features_df
-
+    # Recupera as páginas (pageId) já visualizadas pelo usuário
+    read_pages = clients_features_df.loc[clients_features_df['userId'] == userId, 'pageId'].unique()
+    
+    # Filtra as notícias que não foram visualizadas
+    unread = news_features_df[~news_features_df['pageId'].isin(read_pages)].copy()
+    
+    # Adiciona a coluna 'userId' para identificar a qual usuário as notícias se referem
+    unread['userId'] = userId
+    
+    # Seleciona e organiza as colunas de interesse
+    unread = unread[['userId', 'pageId']].reset_index(drop=True)
+    
+    return unread
 
 def get_predicted_news(
     scores: List[float],

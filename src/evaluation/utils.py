@@ -2,7 +2,7 @@ from typing import Dict
 
 import pandas as pd
 
-from src.recomendation_model.base_model import BaseRecommender
+from recomendation_model.base_model import BaseRecommender
 
 
 def evaluate_model(model: BaseRecommender, evaluation_data: pd.DataFrame, **kwargs) -> Dict:

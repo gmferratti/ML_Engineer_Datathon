@@ -1,73 +1,84 @@
 # Racional do Cálculo do TARGET
 
-O score de engajamento (coluna **TARGET**) foi construído para refletir o comportamento dos usuários, sendo calculado por usuário. Para isso, utilizamos diferentes estratégias de agregação para cada variável, considerando a natureza dos dados (valores absolutos ou percentuais) e a importância de cada métrica no engajamento.
+O score de engajamento (coluna **TARGET**) foi criado para refletir o comportamento de cada par **usuário-notícia**. Dessa forma, o cálculo avalia individualmente como o usuário interage com cada notícia (representada pela coluna `pageId`), permitindo identificar, de forma granular, os níveis de engajamento e orientar ações específicas conforme o consumo de cada conteúdo.
 
 ## Estratégia de Agregação
 
-- **Agrupamento por Usuário:**  
-  Os dados são agrupados pelo `userId` para que o score reflita o comportamento agregado de cada usuário.
+- **Agrupamento por Par Usuário-Notícia:**  
+  O cálculo é realizado para cada combinação de `userId` e `pageId`, possibilitando uma avaliação individualizada do engajamento para cada notícia consumida.
 
-- **Agregações:**  
-  - Variáveis de **valor absoluto** (como `numberOfClicksHistory`, `timeOnPageHistory` e `pageVisitsCountHistory`) são somadas.
-  - Variáveis **percentuais** (como `scrollPercentageHistory`) são calculadas como média.
-  - Variáveis temporais de recência (como `minutesSinceLastVisit`) são agregadas por média, de modo a refletir o comportamento típico do usuário.
+- **Agregações e Ajustes:**  
+  - Variáveis de **valor absoluto** (como `numberOfClicksHistory` e `timeOnPageHistory`) são utilizadas após ajustes que compatibilizam as escalas.  
+  - Variáveis **percentuais** (como `scrollPercentageHistory`) são mantidas em seus valores originais.  
+  - Variáveis de recência, como `minutesSinceLastVisit`, penalizam o score para pares em que o usuário demora mais a retornar, convertendo minutos para horas (divisão por 60).  
+  - **historySize:** Multiplica o score base, normalizado pela média (130), para recompensar usuários com um maior volume de visitas.  
+  - **Gap de Tempo:** Um fator multiplicativo, baseado em `timeGapDays`, penaliza os pares com maior intervalo entre a publicação da notícia e sua visualização, suavizado ao dividir o gap por 50.
 
 ## Variáveis e Justificativas
 
 - **numberOfClicksHistory:**  
-  - **Observação:** Valores baixos (mediana = 1, média ≈ 11,87).  
+  - **Observação:** Geralmente apresenta valores baixos.  
   - **Peso:** 1  
-  - **Justificativa:** Cada clique é contado de forma simples, sem necessidade de ajustes, já que os valores estão em escala reduzida.
+  - **Justificativa:** Cada clique indica uma interação direta, contribuindo positivamente para o engajamento.
 
 - **timeOnPageHistory:**  
-  - **Observação:** Valores elevados (mediana = 60.000, média ≈ 87.829).  
-  - **Peso:** A variável é dividida por 500 para reduzir sua escala e, em seguida, multiplicada por 1.5 para enfatizar sua importância.  
-  - **Justificativa:** O tempo de permanência na página é considerado a variável de maior importância, pois reflete fortemente o engajamento.
+  - **Observação:** Apresenta valores elevados.  
+  - **Ajuste:** Dividido por 1000 para adequar a escala e multiplicado por 1.5 para enfatizar sua importância.  
+  - **Peso:** 1.5 (após normalização)  
+  - **Justificativa:** O tempo que o usuário passa na página é um forte indicativo de interesse e interação com o conteúdo.
 
 - **scrollPercentageHistory:**  
-  - **Observação:** Valores em torno de 43 a 53 (mediana).  
+  - **Observação:** Reflete o percentual de conteúdo visualizado.  
   - **Peso:** 1  
-  - **Justificativa:** A variável já apresenta uma escala adequada e reflete o engajamento de forma complementar, sem necessidade de ajuste adicional.
-
-- **pageVisitsCountHistory:**  
-  - **Observação:** Mediana de 1, com alguns outliers (máximo 654).  
-  - **Peso:** Multiplicada por 2  
-  - **Justificativa:** Para mitigar o efeito dos outliers, aplicamos uma transformação logarítmica (usando `log1p`), que suaviza a influência de valores extremamente altos. Usuários que visitam várias páginas têm seu engajamento valorizado de forma mais robusta.
+  - **Justificativa:** Um maior percentual de scroll indica um aprofundamento na leitura, complementando a avaliação do engajamento.
 
 - **minutesSinceLastVisit:**  
-  - **Observação:** Mediana baixa (47), mas média alta (≈ 1187).  
-  - **Peso:** Dividida por 20  
-  - **Justificativa:** Penaliza usuários que não retornam com frequência (subtraindo do score). A divisão por 20 gera uma penalização proporcional, sem exagerar na influência dos outliers.
+  - **Observação:** Pode variar significativamente entre os pares.  
+  - **Ajuste:** Dividido por 60 para converter minutos em horas, aplicando uma penalização mais suave.  
+  - **Justificativa:** Penaliza pares em que o usuário demora mais a retornar, sugerindo menor engajamento.
+
+- **historySize:**  
+  - **Observação:** Representa a quantidade de páginas visitadas historicamente pelo usuário.  
+  - **Ajuste:** Multiplica o score base por (historySize / 130), normalizando pela média para recompensar usuários com maior volume de visitas.  
+  - **Justificativa:** Usuários que visitam mais páginas recebem um impulso no score, refletindo um engajamento mais robusto.
+
+- **timeGapDays:**  
+  - **Observação:** Representa o intervalo, em dias, entre a publicação da notícia e sua visualização.  
+  - **Ajuste:** Penalizado por um fator calculado como 1 / (1 + timeGapDays / 50), que suaviza a influência de gaps elevados.  
+  - **Justificativa:** Quanto menor o gap, maior o engajamento, pois indica que o usuário consumiu a notícia logo após sua publicação; gaps maiores reduzem o score de forma gradual.
 
 ## Fórmula do TARGET
 
-A fórmula ajustada para o cálculo do TARGET é:
+A fórmula para o cálculo do **TARGET** é definida como:
 
 \[
-\text{TARGET} = \text{cliques} + 1.5\left(\frac{\text{tempo na página}}{500}\right) + \text{scroll} + 2 \times \text{visitas transformadas} - \frac{\text{minutos desde a última visita}}{20}
+\text{TARGET} = \left(\text{numberOfClicksHistory} + 1.5 \times \frac{\text{timeOnPageHistory}}{1000} + \text{scrollPercentageHistory} - \frac{\text{minutesSinceLastVisit}}{60}\right) \times \frac{\text{historySize}}{130} \times \frac{1}{1 + \frac{\text{timeGapDays}}{50}}
 \]
 
 Onde:
-- **cliques:** `numberOfClicksHistory`
-- **tempo na página:** `timeOnPageHistory`
-- **scroll:** `scrollPercentageHistory`
-- **visitas transformadas:** \(\log(1 + \text{pageVisitsCountHistory})\)
-- **minutos desde a última visita:** `minutesSinceLastVisit`
+- **numberOfClicksHistory:** Número de cliques históricos.
+- **timeOnPageHistory:** Tempo na página, ajustado dividindo por 1000 e multiplicado por 1.5.
+- **scrollPercentageHistory:** Percentual de scroll realizado.
+- **minutesSinceLastVisit:** Minutos desde a última visita, penalizados pela divisão por 60.
+- **historySize:** Quantidade de páginas visitadas, utilizada para recompensar usuários com maior volume (normalizada pela média de 130).
+- **timeGapDays:** Dias entre a publicação e a visualização, penalizados de forma suavizada pela divisão por 50.
+
+## Padronização do Score
+
+Após o cálculo bruto do **TARGET**, é aplicada uma padronização utilizando robust scaling:
+- **Subtração da Mediana:** Centraliza os dados.
+- **Divisão pelo IQR (Intervalo Interquartil):** Reduz a influência de outliers.
+
+Essa padronização garante que os scores estejam em uma escala comparável entre os diferentes pares usuário-notícia.
 
 ## Considerações Finais
 
-Este racional possibilita uma avaliação mais realista do engajamento dos usuários, alinhada com os seguintes pontos:
+Esta abordagem possibilita:
 
-- **Balanceamento das escalas:**  
-  Cada variável possui ordens de grandeza diferentes. As transformações (divisão, multiplicação e transformação logarítmica) permitem que todas as métricas contribuam de maneira compatível para o score.
+- **Análise Granular:** A avaliação por par usuário-notícia permite identificar nuances no comportamento e no engajamento de forma precisa.
+- **Balanceamento de Escalas:** As transformações aplicadas ajustam as diferentes ordens de grandeza das variáveis, assegurando que todas contribuam de maneira proporcional.
+- **Enfoque na Dimensão Temporal:** Ao incorporar o gap de tempo (`timeGapDays`), o score valoriza a relevância temporal do conteúdo, premiando visualizações rápidas e penalizando atrasos.
+- **Recompensa pelo Volume de Visitas:** Multiplicar o score base pela razão (historySize / 130) impulsiona o score de usuários com maior histórico de visitas.
+- **Medição Robusta do Engajamento:** A combinação crítica das métricas históricas com ajustes de escala resulta em um score que reflete de forma equilibrada a interação dos usuários com cada notícia.
 
-- **Enfase na dimensão temporal:**  
-  Ao aumentar o peso de `timeOnPageHistory` e ajustar a penalização de `minutesSinceLastVisit`, a métrica valoriza mais o tempo que o usuário passa na página e penaliza a falta de visitas recentes.
-
-- **Atenuação de Outliers:**  
-  A transformação logarítmica em `pageVisitsCountHistory` reduz o impacto de outliers, garantindo que valores extremos não distorçam a métrica de engajamento.
-
-- **Valorizar a Atividade:**  
-  Variáveis que indicam ação (cliques e visitas) são somadas diretamente, enquanto o scroll, representativo do engajamento, mantém seu valor sem grandes ajustes.
-
-Com essa abordagem, o score TARGET reflete de forma robusta e equilibrada o engajamento dos usuários na plataforma.
+Com esse racional, o **TARGET** fornece uma métrica inédita e refinada, alinhada com o comportamento real dos usuários em relação a cada notícia, permitindo insights mais detalhados e decisões mais informadas.
