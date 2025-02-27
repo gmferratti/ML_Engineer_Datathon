@@ -99,3 +99,39 @@ Em nossas features e target, temos:
 - **Contexto Multidimensional:** A combinação de dados de localização (estado e região), temas (tema principal e subtema) e métricas comportamentais (cliques, tempo na página, scroll e recência) fornece uma visão completa das preferências dos usuários e dos fatores que influenciam seu engajamento.
 - **Aplicação Estratégica:** Esses insights possibilitam a criação de modelos de recomendação mais refinados, que priorizam conteúdos alinhados ao comportamento e às preferências individuais, melhorando a personalização e a eficácia das recomendações.
 
+
+
+1. **`page`**
+   - **Descrição:** Número da página da notícia.
+   - **Tipo de Dado:** `int`
+   - **Observação:** Indica a página da notícia.
+
+2. **`url`**
+   - **Descrição:** URL da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Endereço da notícia na web.
+
+3. **`issued`**
+   - **Descrição:** Data de publicação da notícia.
+   - **Tipo de Dado:** `datetime`
+   - **Observação:** Data e hora em que a notícia foi publicada.
+
+4. **`modified`**
+   - **Descrição:** Data de modificação da notícia.
+   - **Tipo de Dado:** `datetime`
+   - **Observação:** Data e hora em que a notícia foi modificada.
+
+5. **`title`**
+   - **Descrição:** Título da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Título da notícia.
+
+6. **`body`**
+   - **Descrição:** Corpo da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Conteúdo principal da notícia.
+
+7. **`caption`**
+   - **Descrição:** Legenda da notícia.
+   - **Tipo de Dado:** `string`
+   - **Observação:** Texto de legenda da notícia.
