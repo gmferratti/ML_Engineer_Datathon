@@ -2,8 +2,7 @@
 
 import os
 
-from config import logger
-from feat_settings import FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH
+from config import logger, FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH
 from features.pp_mix import preprocess_mix_feats, generate_suggested_feats
 from features.pp_news import preprocess_news
 from features.pp_target import preprocess_target

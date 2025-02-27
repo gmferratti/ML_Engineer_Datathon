@@ -13,17 +13,15 @@ from constants import (
     NEWS_COLS_TO_CLEAN,
     NEWS_COLS_TO_DROP
 )
-from feat_settings import (
-    SAMPLE_RATE,
-    NEWS_TEMP_PATH,
-    NEWS_N_CSV_FILES
-)
+from config import logger, SAMPLE_RATE
+from feat_settings import NEWS_TEMP_PATH, NEWS_N_CSV_FILES
+
 
 # Downloading NLTK dependencies
 nltk.download('stopwords')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
-print("Downloaded NLTK dependencies.")
+logger.info("Downloaded NLTK dependencies.")
 
 
 def preprocess_news() -> pd.DataFrame:
