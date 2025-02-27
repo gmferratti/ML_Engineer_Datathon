@@ -24,3 +24,5 @@ def predict_for_userId(
 
     scores = model.predict(model_input)
     return get_predicted_news(scores, non_viewed_news, n=n, score_threshold=score_threshold)
+
+#TODO: Implementar fallback para caras que não são cold_start

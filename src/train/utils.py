@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from config import logger
 from typing import Dict, Any, Tuple, List, Optional
 
-# TODO: Atualizar aqui
 def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     """
     Prepara os dados para treino, aplicando frequency encoding em variáveis
@@ -32,15 +31,23 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     logger.info("Separando features do target...")
     
     # Separar target e features mantendo os identificadores para o merge
-    TARGET_COLS = ["userId", "pageId", "coldStart", "TARGET"]
+    TARGET_COLS = ["userId", "pageId", "coldStart","TARGET"]
     
     y = raw_data[TARGET_COLS]
     X = raw_data.drop(columns=["TARGET"])
     
-    # TODO: Será que é a melhor abordagem? Remover o coldStart do treino? Ou faz sentido deixá-la como feature?
     # Selecionando somente clientes que não são cold_start
-    X = X[X["coldStart"]]
-    y = y[y["coldStart"]]
+    cold_start_regs = (X[X["coldStart"]]).shape[0]
+    
+    logger.info(f"Removido {cold_start_regs} registros cold start")
+    
+    X = X[~X["coldStart"]]
+    y = y[~y["coldStart"]]
+    
+    non_cold_start_regs = X.shape[0]
+    cold_start_proportion = round(100 * (cold_start_regs/(non_cold_start_regs+cold_start_regs)),2)
+    
+    logger.info(f"Proporção de registros cold_start: {cold_start_proportion} %")
 
     logger.info("Dividindo dados em treino e teste...")
     # Dividir os dados (ex.: 70% treino, 30% teste)
@@ -75,7 +82,7 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     KEY_TRAIN_COLS = [
         'userId', 
         'pageId', 
-        'issuedDateTime',
+        'issuedDatetime',
         'timestampHistoryDatetime',
     ]
     URL_COLS = [
@@ -91,10 +98,10 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     X_test_reduced = X_test.drop(columns=COLS_TO_DROP, errors="ignore")
 
     trusted_data = {
-        "X_train": X_train_reduced,
-        "X_test": X_test_reduced,
-        "y_train": y_train["TARGET"],
-        "y_test": y_test["TARGET"],
+        "X_train": X_train_reduced.reset_index(drop=True),
+        "X_test": X_test_reduced.reset_index(drop=True),
+        "y_train": y_train["TARGET"].reset_index(drop=True),
+        "y_test": y_test["TARGET"].reset_index(drop=True),
         "encoder_mapping": encoder_mapping,
     }
 

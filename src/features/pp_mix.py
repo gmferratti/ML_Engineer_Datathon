@@ -38,7 +38,7 @@ def generate_suggested_feats(df_mix: pd.DataFrame,
         DataFrame: Tabela final com todas as informações agregadas.
     """
     # Filtra a base de features finais pelas colunas necessárias.
-    suggested_feats = df_mix[FINAL_MIX_FEAT_COLS].copy()
+    suggested_feats = df_mix[FINAL_MIX_FEAT_COLS]
 
     # Realiza merges com base nas colunas de chave.
     suggested_feats = suggested_feats.merge(

@@ -178,6 +178,7 @@ SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + CATEGORY_COLS + [
 TARGET_INIT_COLS = [
     "userId",
     "pageId",
+    "coldStart",
     "historySize",             # Qtd de páginas visitadas
     "numberOfClicksHistory",   # Qtd de cliques
     "timeOnPageHistory",       # Tempo na página
@@ -189,5 +190,6 @@ TARGET_INIT_COLS = [
 TARGET_FINAL_COLS = [
     "userId",
     "pageId",
+    "coldStart",
     "TARGET"
 ]

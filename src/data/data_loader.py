@@ -1,6 +1,7 @@
+import os
 import pandas as pd
 from typing import List, Dict
-
+from config import logger
 
 def get_client_features(
     userId: str,
@@ -64,10 +65,23 @@ def get_predicted_news(
 
 
 def get_evaluation_data() -> pd.DataFrame:
-    """Pega os dados de avaliacao.
+    """Pega os dados de avaliação.
 
     Returns:
-        DataFrame: DataFrame com os dados de avaliacao.
+        pd.DataFrame: DataFrame com os dados de avaliação (features + target)
     """
-    # TODO: Implementar logica
-    return pd.DataFrame()
+    # Caminhos dos arquivos de avaliação
+    X_test_path = "data/train/X_test.parquet"
+    y_test_path = "data/train/y_test.parquet"
+
+    # Carregar os DataFrames
+    X_test = pd.read_parquet(X_test_path)
+    y_test = pd.read_parquet(y_test_path)
+    
+    # Adiciona a coluna TARGET ao DataFrame de features
+    X_test["TARGET"] = y_test
+    
+    # Renomeia DataFrame de features
+    eval_df = X_test
+
+    return eval_df

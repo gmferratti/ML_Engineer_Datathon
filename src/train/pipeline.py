@@ -57,8 +57,6 @@ def train_model() -> None:
     # 4. Chamada de load_train_data para validar o carregamento dos dados
     X_loaded, y_loaded = load_train_data()
     logger.info(f"Dados carregados: X_train shape: {X_loaded.shape}, y_train shape: {y_loaded.shape}")
-    
-    # TODO: Só treinar com quem não for cold_start
 
 if __name__ == "__main__":
     train_model()
