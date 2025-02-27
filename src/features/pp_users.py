@@ -6,12 +6,8 @@ from constants import (
     USERS_COLS_TO_EXPLODE,
     USERS_DTYPES,
 )
-from feat_settings import (
-    SAMPLE_RATE,
-    COLD_START_THRESHOLD,
-    USERS_N_CSV_FILES,
-    USERS_TEMP_PATH,
-)
+from config import SAMPLE_RATE,COLD_START_THRESHOLD
+from feat_settings import USERS_N_CSV_FILES, USERS_TEMP_PATH
 from utils import concatenate_csv_to_df
 
 

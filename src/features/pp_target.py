@@ -24,7 +24,7 @@ def preprocess_target(df_users: pd.DataFrame, gap_df: pd.DataFrame) -> pd.DataFr
         pd.DataFrame: DataFrame contendo as colunas essenciais do TARGET.
     """
     # 1. Mescla DataFrames com base em userId e pageId.
-    target_df = df_users.merge(gap_df, on=["userId", "pageId"])[TARGET_INIT_COLS]
+    target_df = df_users.merge(gap_df, on=["userId", "pageId"],how="left")[TARGET_INIT_COLS]
 
     # 2. Componentes do score base
     clicks_component = target_df["numberOfClicksHistory"]

@@ -4,25 +4,6 @@ e demais valores usados no pipeline de processamento de dados.
 """
 
 # --------------------------------------------------
-#  NEWS-RELATED CONSTANTS
-# --------------------------------------------------
-NEWS_COLS_TO_CLEAN = [
-    "body",
-    "title",
-    "caption"
-]
-
-NEWS_COLS_TO_DROP = [
-    "local",
-    "theme",
-    "issued",
-    "modified",
-    "url",
-    "urlExtracted",
-] + NEWS_COLS_TO_CLEAN
-
-
-# --------------------------------------------------
 #  USERS-RELATED CONSTANTS
 # --------------------------------------------------
 USERS_COLS_TO_EXPLODE = [
@@ -45,6 +26,24 @@ USERS_DTYPES = {
     "scrollPercentageHistory": "float",
     "pageVisitsCountHistory": "int",
 }
+
+# --------------------------------------------------
+#  NEWS-RELATED CONSTANTS
+# --------------------------------------------------
+NEWS_COLS_TO_CLEAN = [
+    "body",
+    "title",
+    "caption"
+]
+
+NEWS_COLS_TO_DROP = [
+    "local",
+    "theme",
+    "issued",
+    "modified",
+    "url",
+    "urlExtracted",
+] + NEWS_COLS_TO_CLEAN
 
 
 # --------------------------------------------------
@@ -178,6 +177,7 @@ SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + CATEGORY_COLS + [
 TARGET_INIT_COLS = [
     "userId",
     "pageId",
+    "coldStart",
     "historySize",             # Qtd de páginas visitadas
     "numberOfClicksHistory",   # Qtd de cliques
     "timeOnPageHistory",       # Tempo na página

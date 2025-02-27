@@ -24,7 +24,7 @@ def train_model(model_params : Dict = {}) -> BaseRecommender:
     evaluation_data = get_evaluation_data()
 
     with mlflow.start_run():
-        model = MockedRecommender(**model_params)
+        model = BaseRecommender(**model_params)
         model.train(X_train, y_train)
 
         mlflow.log_params(model_params)
