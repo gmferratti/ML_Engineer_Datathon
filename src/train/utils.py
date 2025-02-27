@@ -7,7 +7,6 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from lightgbm import LGBMRegressor
 from config import logger
-from constants import TRAIN_COLS
 
 def prepare_features(raw_data):
     """
@@ -24,12 +23,12 @@ def prepare_features(raw_data):
       4. Remover os identificadores ('userId' e 'pageId') dos conjuntos de treino e teste.
     """
     logger.info("Separando features do target...")
-    # 1. Separar target e features mantendo os identificadores para o merge
+    # Separar target e features mantendo os identificadores para o merge
     y = raw_data[['userId', 'pageId', 'TARGET']]
     X = raw_data.drop(columns=['TARGET'])
     
     logger.info("Dividindo dados em treino e teste...")
-    # 2. Dividir os dados em treino e teste (ex.: 70% treino, 30% teste)
+    # Dividir os dados em treino e teste (ex.: 70% treino, 30% teste)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
     
     # Lista de colunas categóricas, excluindo os identificadores
@@ -40,7 +39,7 @@ def prepare_features(raw_data):
     encoder_mapping = {}
     
     logger.info("Aplicando Frequency Encoding (criando colunas adicionais) nas variáveis categóricas...")
-    # 3. Para cada coluna categórica, calcula a frequência e cria nova coluna com o encoded
+    # Para cada coluna categórica, calcula a frequência e cria nova coluna com o encoded
     for col in cat_cols:
         # Calcula a frequência relativa para cada categoria no conjunto de treino
         freq_encoding = X_train[col].value_counts(normalize=True)
@@ -53,13 +52,13 @@ def prepare_features(raw_data):
         
     
     logger.info("Removendo identificadores...")
-    # 4. Remover os identificadores que não serão utilizados como features
+    # Remover os identificadores que não serão utilizados como features
     X_train_reduced = X_train.drop(columns=['userId', 'pageId'], errors='ignore')
     X_test_reduced = X_test.drop(columns=['userId', 'pageId'], errors='ignore')
     
     trusted_data = {
-        'X_train': X_train_reduced[TRAIN_COLS],
-        'X_test': X_test_reduced[TRAIN_COLS],
+        'X_train': X_train_reduced,
+        'X_test': X_test_reduced,
         'y_train': y_train['TARGET'],
         'y_test': y_test['TARGET'],
         'encoder_mapping': encoder_mapping
