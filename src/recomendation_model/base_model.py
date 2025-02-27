@@ -13,14 +13,23 @@ class BaseRecommender(ABC):
                                      utiliza um conjunto padrão voltado para ranking.
             num_boost_round (int, opcional): Número de iterações (árvores) no treinamento.
         """
-        # Definindo parâmetros padrão para Ranking
-        self.params = params if params is not None else {
+        # Define os parâmetros padrão para ranking, incluindo label_gain para scores de 0 a 100
+        default_params = {
             'objective': 'lambdarank',   # Usando objetivo de ranking (LambdaRank)
             'metric': 'ndcg',            # Métrica típica para avaliar ranking
             'learning_rate': 0.05,
-            'num_leaves': 31,
-            'verbose': -1                # Suprime logs informativos
+            'num_leaves': 39,
+            'verbose': -1,
+            'label_gain': [2**i - 1 for i in range(101)]  # Vetor de ganho para rótulos de 0 a 100
         }
+        
+        # Se o usuário passar parâmetros personalizados, verifica se label_gain não está definido
+        if params is not None:
+            if params.get('objective', default_params['objective']) == 'lambdarank' and 'label_gain' not in params:
+                params['label_gain'] = [2**i - 1 for i in range(101)]
+            self.params = params
+        else:
+            self.params = default_params
         
         self.num_boost_round = num_boost_round
         self.model = None
@@ -52,6 +61,10 @@ class LightGBMRanker(BaseRecommender):
     utilizando o objetivo 'lambdarank' para aprendizado de ranking.
     """
     def __init__(self, params=None, num_boost_round=100):
+        # Caso seja passado um dicionário de parâmetros que contenha 'num_class',
+        # removemos para evitar conflitos com o objetivo de ranking.
+        if params is not None and "num_class" in params:
+            del params["num_class"]
         super().__init__(params=params, num_boost_round=num_boost_round)
 
     def train(self, X, y, group):
@@ -66,6 +79,10 @@ class LightGBMRanker(BaseRecommender):
                                    ou grupo. A soma de todos os elementos de 'group' 
                                    deve ser igual ao número total de linhas em X.
         """
+        # Valida se a soma dos grupos bate com o número total de amostras
+        if np.sum(group) != X.shape[0]:
+            raise ValueError("A soma dos valores em 'group' deve ser igual ao número de amostras em X.")
+        
         # Cria Dataset para ranking, informando os grupos
         train_data = lgb.Dataset(X, label=y, group=group)
         
