@@ -1,7 +1,7 @@
 import pandas as pd
 from mlflow.pyfunc import PythonModel
 
-from src.recomendation_model.base_model import BaseRecommender
+from recomendation_model.base_model import BaseRecommender
 
 
 class MockedRecommender(BaseRecommender):

@@ -27,8 +27,8 @@ aux = pd.merge(
 # Teste de sanidade (que passa).
 # Verifica se os usuários estão aparecendo sempre
 # consecutivos
-# for user_id in set(aux.userId):
-#    assert (aux.userId == user_id).diff().sum() <= 2
+# for userId in set(aux.userId):
+#    assert (aux.userId == userId).diff().sum() <= 2
 
 
 # Itera no df em ordem inversa, coloca a relevancia

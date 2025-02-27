@@ -21,7 +21,9 @@ dependencies = [
     "pytest-mock==3.14.0",
     "pyyaml==6.0.2",
     "ipython==8.18.1",
-    "ipykernel==6.29.5"
+    "ipykernel==6.29.5",
+    "lightgbm>=4.6.0",
+    "category-encoders>=2.6.4",
 ]
 
 [project.optional-dependencies]

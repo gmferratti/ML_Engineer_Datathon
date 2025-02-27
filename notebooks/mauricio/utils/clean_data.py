@@ -31,7 +31,7 @@ def clean_train_data(input_df: pd.DataFrame) -> pd.DataFrame:
     df_treino = df_treino.drop(columns=["timestampHistory_new"])
 
     # Explodindo as colunas de historico para cada linha significar uma noticia
-    cols_to_explode = [
+    USERS_COLS_TO_EXPLODE = [
         "history",
         "timestampHistory",
         "numberOfClicksHistory",
@@ -40,7 +40,7 @@ def clean_train_data(input_df: pd.DataFrame) -> pd.DataFrame:
         "pageVisitsCountHistory",
     ]
 
-    for col in cols_to_explode:
+    for col in USERS_COLS_TO_EXPLODE:
         df_treino[col] = df_treino[col].str.split(", ")
 
     df_exploded = df_treino.explode([
