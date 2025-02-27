@@ -1,5 +1,6 @@
 """Módulo que gera e pré-processa as features combinando dados de notícias e usuários."""
 
+#TODO: É aqui que temos o BO de granularidade
 import pandas as pd
 import numpy as np
 
@@ -197,5 +198,11 @@ def _split_dataframes(df_mix: pd.DataFrame):
 
     ts_df = df_mix[THEME_SUB_COLS].copy()
     ts_df = ts_df[ts_df["countThemeSubUser"] > 0].reset_index(drop=True)
+    
+    # Dropando duplicatas
+    state_df = state_df.drop_duplicates(subset=["userId", "localState"])
+    region_df = region_df.drop_duplicates(subset=["userId", "localRegion"])
+    tm_df = tm_df.drop_duplicates(subset=["userId", "themeMain"])
+    ts_df = ts_df.drop_duplicates(subset=["userId", "themeSub"])
 
     return gap_df, state_df, region_df, tm_df, ts_df

@@ -2,11 +2,12 @@
 
 import re
 import unicodedata
-
 import nltk
 import pandas as pd
+
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk.data import find
 
 from utils import concatenate_csv_to_df
 from constants import (
@@ -15,13 +16,6 @@ from constants import (
 )
 from config import logger
 from feat_settings import NEWS_TEMP_PATH, NEWS_N_CSV_FILES
-
-
-# Downloading NLTK dependencies
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('omw-1.4')
-logger.info("Downloaded NLTK dependencies.")
 
 
 def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
@@ -40,6 +34,10 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame resultante do pré-processamento.
     """
+    _download_resource('stopwords', ['corpora/stopwords'])
+    _download_resource('wordnet', ['corpora/wordnet', 'corpora/wordnet.zip'])
+    _download_resource('omw-1.4', ['corpora/omw-1.4', 'corpora/omw-1.4.zip'])
+    
     # 1. Concatena CSVs
     df_news = concatenate_csv_to_df(NEWS_TEMP_PATH, NEWS_N_CSV_FILES)
 
@@ -77,6 +75,28 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
 
     return df_news
 
+def _download_resource(resource_name: str, resource_paths: list) -> None:
+    """
+    Tenta localizar o recurso verificando uma lista de possíveis caminhos.
+    Se nenhum deles for encontrado, realiza o download.
+    
+    Args:
+        resource_name (str): Nome do recurso (usado no download).
+        resource_paths (list): Lista de caminhos (strings) a serem verificados.
+    """
+    found = False
+    for path in resource_paths:
+        try:
+            nltk.data.find(path)
+            found = True
+            logger.info("Recurso NLTK '%s' já está baixado.", resource_name)
+            break
+        except LookupError:
+            continue
+
+    if not found:
+        nltk.download(resource_name)
+        logger.info("Recurso NLTK '%s' baixado.", resource_name)
 
 def _extract_url_mid_section(url: str) -> str:
     """
