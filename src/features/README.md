@@ -62,76 +62,40 @@ A coluna **TARGET** avalia o engajamento do usuário com cada notícia. O engaja
    - **Gap de Publicação (timeGapDays)**: Avalia o intervalo entre a data de publicação e o consumo; quanto maior o gap, menor a pontuação de engajamento.
 
 3. **Penalizações e Ajustes**  
-   - **Tempo** é escalonado para ficar na mesma ordem de grandeza de outras variáveis (dividido por 1000 e multiplicado por fator).  
-   - **Cliques** e **Scroll** entram somados ao tempo para formar um “score base”.  
+   - **Tempo** é normalizado para ficar na mesma ordem de grandeza de outras variáveis (convertido de ms para segundos e multiplicado por um fator).  
+   - **Cliques** e **Scroll** são somados ao tempo para formar um “score base”.  
    - **Recência** é subtraída, reduzindo o score se o usuário demora a retornar.  
    - **Histórico** multiplica esse resultado, normalizando pela média (tipicamente 130).  
    - **Gap de Publicação** aplica um fator decrescente: quanto maior o intervalo entre publicação e consumo, menor o score final.
 
-### 2.2 Fórmula de Cálculo
+### 2.2 Fórmula de Cálculo Inicial
 
-A expressão geral para o cálculo do **TARGET** pode ser representada como:
+A expressão geral para o cálculo do **score base** (antes das transformações) pode ser representada como:
 
-\[
-\text{TARGET} = \left(\text{numberOfClicksHistory} + 1.5 \times \frac{\text{timeOnPageHistory}}{1000} + \text{scrollPercentageHistory} - \frac{\text{minutesSinceLastVisit}}{60}\right) \times \frac{\text{historySize}}{130} \times \frac{1}{1 + \frac{\text{timeGapDays}}{50}}
-\]
+~~~text
+scoreBase = (numberOfClicksHistory
+             + 1.5 * (timeOnPageHistory / 1000)
+             + scrollPercentageHistory
+             - (minutesSinceLastVisit / 60))
+~~~
 
-1. **Termo Base:** Soma de cliques, tempo (com peso 1.5) e scroll, subtraído do tempo de recência.  
-2. **Fator de Histórico:** Multiplica o score, normalizado pela média de páginas visitadas (130).  
-3. **Fator de Gap:** Penaliza interações tardias, suavizando o score conforme o `timeGapDays` aumenta.
+e então multiplicamos pelos fatores de histórico e o gap em dias:
 
-### 2.3 Padronização (Robust Scaling)
+~~~text
+rawScore = scoreBase
+           * (historySize / 130)
+           * (1 / (1 + (timeGapDays / 50)))
+~~~
 
-Após o cálculo bruto do TARGET, é aplicada uma padronização por meio de **robust scaling**:
-- **Subtração da Mediana**: remove o desvio mediano dos dados, centralizando o score.  
-- **Divisão pelo IQR** (Intervalo Interquartil): reduz a influência de valores extremos, mantendo o score em uma faixa comparável.
+### 2.3 Transformações e Escalonamento
 
-Esse processo garante que o **TARGET** seja comparável entre diferentes pares usuário-notícia, viabilizando análises mais equilibradas.
+Para aumentar a variância e impedir que valores altos dominem o conjunto, aplicamos:
+
+1. **Corte em Zero**: Se o `rawScore` for negativo, definimos como 0 para evitar problemas no log.
+2. **Transformação Logarítmica**: `log1p(rawScore)`, que espalha mais a distribuição.
+3. **Min-Max Scaling**: Escalona o resultado para **[0, SCALING_RANGE]**.
+4. **Arredondamento**: Converte o valor final para inteiro.
+
+Dessa forma, valores muito baixos não ficam “espremidos” em torno de zero, e valores muito altos são comprimidos, criando uma variação mais equilibrada.
 
 ---
-
-## 3. Considerações Finais
-
-Em nossas features e target, temos:
-
-- **Engajamento Personalizado:** O TARGET é calculado para cada par usuário-notícia, permitindo identificar com precisão o nível de interação de cada usuário com conteúdos específicos.
-- **Integração Temporal:** Ao levar em conta tanto a data/hora de publicação quanto a data/hora de consumo, o score captura a dinâmica temporal do consumo de conteúdo, refletindo a relevância do timing na interação.
-- **Contexto Multidimensional:** A combinação de dados de localização (estado e região), temas (tema principal e subtema) e métricas comportamentais (cliques, tempo na página, scroll e recência) fornece uma visão completa das preferências dos usuários e dos fatores que influenciam seu engajamento.
-- **Aplicação Estratégica:** Esses insights possibilitam a criação de modelos de recomendação mais refinados, que priorizam conteúdos alinhados ao comportamento e às preferências individuais, melhorando a personalização e a eficácia das recomendações.
-
-
-
-1. **`page`**
-   - **Descrição:** Número da página da notícia.
-   - **Tipo de Dado:** `int`
-   - **Observação:** Indica a página da notícia.
-
-2. **`url`**
-   - **Descrição:** URL da notícia.
-   - **Tipo de Dado:** `string`
-   - **Observação:** Endereço da notícia na web.
-
-3. **`issued`**
-   - **Descrição:** Data de publicação da notícia.
-   - **Tipo de Dado:** `datetime`
-   - **Observação:** Data e hora em que a notícia foi publicada.
-
-4. **`modified`**
-   - **Descrição:** Data de modificação da notícia.
-   - **Tipo de Dado:** `datetime`
-   - **Observação:** Data e hora em que a notícia foi modificada.
-
-5. **`title`**
-   - **Descrição:** Título da notícia.
-   - **Tipo de Dado:** `string`
-   - **Observação:** Título da notícia.
-
-6. **`body`**
-   - **Descrição:** Corpo da notícia.
-   - **Tipo de Dado:** `string`
-   - **Observação:** Conteúdo principal da notícia.
-
-7. **`caption`**
-   - **Descrição:** Legenda da notícia.
-   - **Tipo de Dado:** `string`
-   - **Observação:** Texto de legenda da notícia.
