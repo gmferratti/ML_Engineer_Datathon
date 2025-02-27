@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 FLAG_REMOTE = False  # Define se os dados serão processados localmente ou remotamente
 COLD_START_THRESHOLD = 5  # Limite para classificar usuários como "cold start"
 SAMPLE_RATE = 0.10  # Fração de amostragem dos dados
+SCALING_RANGE = 100 # Valor de escalonamento do Score (de 0 a 100)
 
 # Data de referência (cálculo)
 DT_TODAY = pd.Timestamp.today().date()

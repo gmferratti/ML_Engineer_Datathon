@@ -191,3 +191,12 @@ TARGET_FINAL_COLS = [
     "pageId",
     "TARGET"
 ]
+
+DEFAULT_TARGET_VALUES = {
+    "numberOfClicksHistory": 0,
+    "timeOnPageHistory": 0,         
+    "scrollPercentageHistory": 0,
+    "minutesSinceLastVisit": 60,    
+    "historySize": 130,           
+    "timeGapDays": 50         
+}

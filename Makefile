@@ -85,6 +85,9 @@ train:
 predict:
 	uv run src/predict/predict.py
 
+run_all:
+	uv run src/features/pipeline.py && uv run src/train/pipeline.py
+
 local_api:
 	uv run src/api/app.py
 
