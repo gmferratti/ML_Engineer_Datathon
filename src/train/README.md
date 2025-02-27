@@ -46,8 +46,3 @@ A divisão dos dados em conjuntos de treino e teste é uma prática fundamental 
 - **Medição de Generalização:** Utilizar dados de teste não vistos durante o treinamento possibilita avaliar a capacidade do modelo de lidar com novos cenários, garantindo uma avaliação mais robusta.
 
 ---
-
-## Dúvidas ou Contribuições
-
-- Para dúvidas sobre o fluxo de preparação, abra uma _issue_ ou entre em contato.
-- Para melhorias ou correções, envie um _pull request_.

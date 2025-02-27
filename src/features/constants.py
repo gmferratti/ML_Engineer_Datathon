@@ -4,25 +4,6 @@ e demais valores usados no pipeline de processamento de dados.
 """
 
 # --------------------------------------------------
-#  NEWS-RELATED CONSTANTS
-# --------------------------------------------------
-NEWS_COLS_TO_CLEAN = [
-    "body",
-    "title",
-    "caption"
-]
-
-NEWS_COLS_TO_DROP = [
-    "local",
-    "theme",
-    "issued",
-    "modified",
-    "url",
-    "urlExtracted",
-] + NEWS_COLS_TO_CLEAN
-
-
-# --------------------------------------------------
 #  USERS-RELATED CONSTANTS
 # --------------------------------------------------
 USERS_COLS_TO_EXPLODE = [
@@ -45,6 +26,24 @@ USERS_DTYPES = {
     "scrollPercentageHistory": "float",
     "pageVisitsCountHistory": "int",
 }
+
+# --------------------------------------------------
+#  NEWS-RELATED CONSTANTS
+# --------------------------------------------------
+NEWS_COLS_TO_CLEAN = [
+    "body",
+    "title",
+    "caption"
+]
+
+NEWS_COLS_TO_DROP = [
+    "local",
+    "theme",
+    "issued",
+    "modified",
+    "url",
+    "urlExtracted",
+] + NEWS_COLS_TO_CLEAN
 
 
 # --------------------------------------------------
@@ -190,6 +189,5 @@ TARGET_INIT_COLS = [
 TARGET_FINAL_COLS = [
     "userId",
     "pageId",
-    "coldStart",
     "TARGET"
 ]

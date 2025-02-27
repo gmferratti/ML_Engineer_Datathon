@@ -13,7 +13,7 @@ from constants import (
     NEWS_COLS_TO_CLEAN,
     NEWS_COLS_TO_DROP
 )
-from config import logger, SAMPLE_RATE
+from config import logger
 from feat_settings import NEWS_TEMP_PATH, NEWS_N_CSV_FILES
 
 
@@ -24,27 +24,30 @@ nltk.download('omw-1.4')
 logger.info("Downloaded NLTK dependencies.")
 
 
-def preprocess_news() -> pd.DataFrame:
+def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     """
     Realiza o pré-processamento dos dados de notícias:
       1. Concatena múltiplos CSVs.
-      2. Realiza amostragem (sampling).
+      2. Filtra as notícias com base nos pageId dos usuários amostrados.
       3. Renomeia a coluna de chave primária.
       4. Converte colunas de data e hora em tipos datetime.
       5. Extrai informações do 'miolo' da URL (localidade, tema da notícia).
       6. Remove colunas desnecessárias.
-
+    
+    Args:
+        selected_pageIds (pd.Series): Lista de pageId dos usuários amostrados.
+    
     Returns:
         pd.DataFrame: DataFrame resultante do pré-processamento.
     """
     # 1. Concatena CSVs
     df_news = concatenate_csv_to_df(NEWS_TEMP_PATH, NEWS_N_CSV_FILES)
 
-    # 2. Realiza sampling dos dados
-    df_news = df_news.sample(frac=SAMPLE_RATE, random_state=42)
-
     # 3. Renomeia a coluna de chave primária
     df_news = df_news.rename(columns={"page": "pageId"})
+
+    # 2. Filtra as notícias que possuem pageId nos usuários amostrados
+    df_news = df_news[df_news['pageId'].isin(selected_pageIds)]
 
     # 4. Converte colunas de data/hora em tipos datetime
     for col in ["issued", "modified"]:
@@ -66,7 +69,6 @@ def preprocess_news() -> pd.DataFrame:
     df_news["themeSub"] = df_news["theme"].str.split("/").str[1]
 
     # (Opcional) Limpeza de colunas de texto.
-    # Descomentar, caso for utilizar os textos no futuro.
     # for col in NEWS_COLS_TO_CLEAN:
     #     df_news[f"{col}Cleaned"] = df_news[col].apply(_preprocess_text)
 

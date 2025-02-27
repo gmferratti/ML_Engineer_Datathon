@@ -23,40 +23,44 @@ def train_model() -> None:
     Pipeline de treinamento do modelo:
       1. Carrega o DataFrame final com features e target.
       2. Prepara os conjuntos de treino e teste.
-      3. Salva os dados em formato parquet.
+      3. Salva todos os dados contidos em trusted_data em formato Parquet,
+         utilizando um loop para evitar hardcoding.
       4. Chama load_train_data para validar o carregamento dos dados.
     """
     # 1. Carregar o DataFrame final com features e target
     final_feats_path = os.path.join("data", "features", "final_feats_with_target.parquet")
-    logger.info(f"Carregando features finais com target de {final_feats_path}...")
+    logger.info("Carregando features finais com target de %s...", final_feats_path)
     final_feats_with_target = pd.read_parquet(final_feats_path)
-    
+
     # 2. Preparar os conjuntos de treino e teste
     logger.info("Preparando features...")
     trusted_data = prepare_features(final_feats_with_target)
-    
-    X_train = trusted_data["X_train"]
-    X_test = trusted_data["X_test"]
-    y_train = pd.DataFrame(trusted_data["y_train"])
-    y_test = pd.DataFrame(trusted_data["y_test"])
-    
+
     base_train_path = os.path.join("data", "train")
-    
-    # 3. Salvar os dados de treino e teste em formato parquet
-    logger.info("Salvando conjuntos de treino e target em formato parquet...")
-    _save_df_parquet(X_train, os.path.join(base_train_path, "X_train.parquet"))
-    _save_df_parquet(X_test, os.path.join(base_train_path, "X_test.parquet"))
-    _save_df_parquet(y_train, os.path.join(base_train_path, "y_train.parquet"))
-    _save_df_parquet(y_test, os.path.join(base_train_path, "y_test.parquet"))
-    
-    encoder_mapping = pd.DataFrame(trusted_data["encoder_mapping"])
-    _save_df_parquet(encoder_mapping, os.path.join(base_train_path, "encoder_mapping.parquet"))
-    
+    os.makedirs(base_train_path, exist_ok=True)
+
+    # 3. Salvar todos os itens de trusted_data em formato Parquet utilizando loop
+    for key, data in trusted_data.items():
+        # Se for o encoder_mapping e for um dict, converte para DataFrame
+        if key == "encoder_mapping" and isinstance(data, dict):
+            data = pd.DataFrame(data)
+        # Se não for um DataFrame, tenta convertê-lo (a maioria dos itens devem ser DataFrames)
+        if not isinstance(data, pd.DataFrame):
+            try:
+                data = pd.DataFrame(data)
+            except Exception as e:
+                logger.warning("Não foi possível converter %s para DataFrame: %s", key, e)
+                continue
+
+        file_path = os.path.join(base_train_path, f"{key}.parquet")
+        logger.info("Salvando %s em %s", key, file_path)
+        _save_df_parquet(data, file_path)
+
     logger.info("Pipeline de treinamento concluído!")
-    
-    # 4. Chamada de load_train_data para validar o carregamento dos dados
+
+    # 4. Validar o carregamento dos dados
     X_loaded, y_loaded = load_train_data()
-    logger.info(f"Dados carregados: X_train shape: {X_loaded.shape}, y_train shape: {y_loaded.shape}")
+    logger.info("Dados carregados: X_train shape: %s, y_train shape: %s", X_loaded.shape, y_loaded.shape)
 
 if __name__ == "__main__":
     train_model()

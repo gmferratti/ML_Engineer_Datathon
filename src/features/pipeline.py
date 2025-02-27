@@ -36,7 +36,7 @@ def _save_df_parquet(df, file_path: str) -> None:
     df.to_parquet(file_path)
 
 
-def _preprocess_and_save_news(data_path: str):
+def _preprocess_and_save_news(data_path: str, selected_pageIds:list):
     """
     Executa o pré-processamento de notícias e salva o resultado em parquet.
 
@@ -47,7 +47,7 @@ def _preprocess_and_save_news(data_path: str):
         pandas.DataFrame: DataFrame com as features de notícias pré-processadas.
     """
     logger.info("Pre-processing news info...")
-    news_df = preprocess_news()
+    news_df = preprocess_news(selected_pageIds)
     news_path = os.path.join(data_path, "features", "news_feats.parquet")
     logger.info(f"Saving pre-processed news parquet at {news_path}...")
     _save_df_parquet(news_df, news_path)
@@ -181,6 +181,7 @@ def _assemble_and_save_final_feats(data_path: str, suggested_feats, target_df):
     )
     _save_df_parquet(final_feats, final_feats_path)
     logger.info(f"Final features DF saved at {final_feats_path}")
+    return final_feats
 
 
 def pre_process_data() -> None:
@@ -196,26 +197,45 @@ def pre_process_data() -> None:
     data_path = _get_data_path()
     logger.info(f"Info will be saved at {data_path}")
 
-    # 1. Pré-processamento de notícias e usuários
-    news_df = _preprocess_and_save_news(data_path)
+    # 1. Pré-processamento de usuários e notícias
     users_df = _preprocess_and_save_users(data_path)
+    logger.info("users_df generated with shape: %s", users_df.shape)
+    
+    num_paginas_users = users_df["pageId"].nunique()
+    num_usuarios = users_df["userId"].nunique()
+    logger.info("users_df possui %d páginas únicas e %d usuários únicos", num_paginas_users, num_usuarios)
+    
+    selected_pageIds = list(users_df["pageId"].unique())
+    
+    news_df = _preprocess_and_save_news(data_path, selected_pageIds)
+    logger.info("news_df generated with shape: %s", news_df.shape)
+    num_paginas_news = news_df["pageId"].nunique()
+    logger.info("news_df possui %d páginas únicas", num_paginas_news)
 
     # 2. Criação das mix feats
-    (mix_df, gap_df, state_df,
-     region_df, tm_df, ts_df) = _preprocess_and_save_mix_feats(
+    (mix_df, gap_df, state_df, region_df, tm_df, ts_df) = _preprocess_and_save_mix_feats(
         data_path, news_df, users_df
     )
+    logger.info("mix_df generated with shape: %s", mix_df.shape)
+    logger.info("gap_df generated with shape: %s", gap_df.shape)
+    logger.info("state_df generated with shape: %s", state_df.shape)
+    logger.info("region_df generated with shape: %s", region_df.shape)
+    logger.info("tm_df generated with shape: %s", tm_df.shape)
+    logger.info("ts_df generated with shape: %s", ts_df.shape)
 
     # 3. Geração de suggested_feats
     suggested_feats = _assemble_and_save_suggested_feats(
         data_path, mix_df, state_df, region_df, tm_df, ts_df
     )
+    logger.info("suggested_feats generated with shape: %s", suggested_feats.shape)
 
     # 4. Criação e salvamento do target
     target_df = _preprocess_and_save_target(data_path, users_df, gap_df)
+    logger.info("target_df generated with shape: %s", target_df.shape)
 
     # 5. Montagem e salvamento das features finais com target
-    _assemble_and_save_final_feats(data_path, suggested_feats, target_df)
+    final_feats = _assemble_and_save_final_feats(data_path, suggested_feats, target_df)
+    logger.info("Final features with target generated with shape: %s", final_feats.shape)
 
     logger.info("Pre-processing complete!")
 

@@ -78,6 +78,7 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
         )
 
     logger.info("Removendo identificadores...")
+    
     # Remover os identificadores que não serão utilizados como features
     KEY_TRAIN_COLS = [
         'userId', 
@@ -94,15 +95,27 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     REDUNDANT_UNNECESSARY = ['userType', 'dayPeriod','coldStart']
     COLS_TO_DROP = KEY_TRAIN_COLS + URL_COLS + REDUNDANT_UNNECESSARY
     
+    # Cria DataFrame com o número de interações por usuário (groupCount)
+    group_train = X_train.groupby("userId").size().reset_index(name="groupCount")
+    group_test = X_test.groupby("userId").size().reset_index(name="groupCount")
+
+    # Verifica se a soma dos grupos é igual ao número total de linhas do dataset
+    assert group_train["groupCount"].sum() == len(X_train), "A soma dos grupos deve ser igual ao número total de linhas em X_train"
+    assert group_test["groupCount"].sum() == len(X_test), "A soma dos grupos deve ser igual ao número total de linhas em X_test"
+    
     X_train_reduced = X_train.drop(columns=COLS_TO_DROP, errors="ignore")
     X_test_reduced = X_test.drop(columns=COLS_TO_DROP, errors="ignore")
 
     trusted_data = {
+        "X_train_full": X_train.reset_index(drop=True),
         "X_train": X_train_reduced.reset_index(drop=True),
+        "X_test_full": X_test.reset_index(drop=True),
         "X_test": X_test_reduced.reset_index(drop=True),
         "y_train": y_train["TARGET"].reset_index(drop=True),
         "y_test": y_test["TARGET"].reset_index(drop=True),
         "encoder_mapping": encoder_mapping,
+        "group_train": group_train.reset_index(drop=True),
+        "group_test": group_test.reset_index(drop=True)
     }
 
     return trusted_data
