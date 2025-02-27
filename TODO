@@ -2,7 +2,7 @@
 - Implementar PP de usuarios (DONE)
 - Implementar PP de noticias (DONE)
 - Implementar pp de features combinadas notícias + usuários (DONE)
-- Proposição final de features
-- Feature selection com base em algum critério estatístico
-- Implementar treino do algoritmo de recomendação
+- Proposição final de features (DONE)
+- Feature selection com base em correlacao e ANOVA (DONE)
+- Implementar treino do algoritmo de recomendação (DONE)
 - Implementar predict do algoritmo de recomendação

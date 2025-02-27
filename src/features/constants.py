@@ -1,4 +1,17 @@
-NEWS_COLS_TO_CLEAN = ["body", "title", "caption"]
+"""
+Módulo de constantes para referenciação de colunas, dicionários de tipos
+e demais valores usados no pipeline de processamento de dados.
+"""
+
+# --------------------------------------------------
+#  NEWS-RELATED CONSTANTS
+# --------------------------------------------------
+NEWS_COLS_TO_CLEAN = [
+    "body",
+    "title",
+    "caption"
+]
+
 NEWS_COLS_TO_DROP = [
     "local",
     "theme",
@@ -8,6 +21,10 @@ NEWS_COLS_TO_DROP = [
     "urlExtracted",
 ] + NEWS_COLS_TO_CLEAN
 
+
+# --------------------------------------------------
+#  USERS-RELATED CONSTANTS
+# --------------------------------------------------
 USERS_COLS_TO_EXPLODE = [
     "history",
     "timestampHistory",
@@ -29,6 +46,10 @@ USERS_DTYPES = {
     "pageVisitsCountHistory": "int",
 }
 
+
+# --------------------------------------------------
+#  MIXED FEATURES CONSTANTS
+# --------------------------------------------------
 MIX_FEATS_COLS = [
     "userId",
     "pageId",
@@ -43,10 +64,16 @@ MIX_FEATS_COLS = [
     "themeMain",
     "themeSub",
     "coldStart",
-    'userType', 
-    'historySize', 
+    "userType",
+    "historySize",
+    "dayPeriod",
+    "isWeekend"
 ]
 
+
+# --------------------------------------------------
+#  FEATURE SETS (STATE, REGION, THEME)
+# --------------------------------------------------
 STATE_COLS = [
     "userId",
     "localState",
@@ -75,19 +102,29 @@ THEME_SUB_COLS = [
     "relThemeSub",
 ]
 
+
+# --------------------------------------------------
+#  GAP-RELATED FEATURES
+# --------------------------------------------------
 GAP_COLS = [
     "userId",
     "pageId",
-    "timeGapDays", # Delta entre publicação e consumo (em dias)
-    "timeGapHours", # Delta entre publicação e consumo (em horas)
-    "timeGapMinutes", # Delta entre publicação e consumo (em minutos)
-    "timeGapLessThanOneDay" # Flag que indica se o usuário consumiu a notícia no mesmo dia
+    "timeGapDays",           # Delta entre publicação e consumo (em dias)
+    "timeGapHours",          # Delta entre publicação e consumo (em horas)
+    "timeGapMinutes",        # Delta entre publicação e consumo (em minutos)
+    "timeGapLessThanOneDay", # Flag para consumo no mesmo dia
 ]
 
+
+# --------------------------------------------------
+#  MIXED FEATURE COLUMNS (FINAL)
+# --------------------------------------------------
 FINAL_MIX_FEAT_COLS = [
     "userId",
     "pageId",
     "userType",
+    "isWeekend",
+    "dayPeriod",
     "issuedDatetime",
     "timestampHistoryDatetime",
     "coldStart",
@@ -97,42 +134,60 @@ FINAL_MIX_FEAT_COLS = [
     "themeSub",
 ]
 
+
+# --------------------------------------------------
+#  CATEGORY COLUMNS (URL EXTRACTED)
+# --------------------------------------------------
 CATEGORY_COLS = [
-    "localState", # Campo de tag (da URL) do estado em que a notícia se refere
-    "localRegion", # Campo de tag (da URL) da micro-região em que a notícia se refere
-    "themeMain", # Campo de tag (da URL) do tema principal da notícia
-    "themeSub", # Campo de tag (da URL) do subtema da notícia
+    "localState",  # Tag do estado
+    "localRegion", # Tag da micro-região
+    "themeMain",   # Tag do tema principal
+    "themeSub",    # Tag do subtema
 ]
 
+
+# --------------------------------------------------
+#  CHAVE PRIMÁRIA E DATAS
+# --------------------------------------------------
 KEY_FEAT_COLS = [
-    "userId", # Id do usuário
-    "pageId", # Id da notícia
-    "issuedDatetime", # Data de publicação da notícia
-    "timestampHistoryDatetime", # Data de consumo da notícia pelo usuário
+    "userId",                   # Id do usuário
+    "pageId",                   # Id da notícia
+    "issuedDatetime",           # Data/hora de publicação
+    "timestampHistoryDatetime", # Data/hora de consumo
 ]
 
-SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + CATEGORY_COLS + [
-    "userType", # Se o usuário está logado ou não
-    "coldStart", # Flag que indica se o usuário é ou não novo na plataforma (coldStart)
-    "relLocalState", # Percentual relativo do consumo de notícias daquele estado entre todas as notícias consumidas pelo usuário
-    "relLocalRegion", # Percentual relativo do consumo de notícias daquela região entre todas as notícias consumidas pelo usuário
-    "relThemeMain", # Percentual relativo do consumo de notícias daquele tema entre todas as notícias consumidas pelo usuário
-    "relThemeSub", # Percentual relativo do consumo de notícias daquele subtema entre todas as notícias consumidas pelo usuário
-] 
 
+# --------------------------------------------------
+#  SUGESTED FEATURES
+# --------------------------------------------------
+SUGGESTED_FEAT_COLS = KEY_FEAT_COLS + CATEGORY_COLS + [
+    "userType",               # Usuário logado ou não
+    "isWeekend",              # Consome notícias no FDS ou não
+    "dayPeriod",              # Período do dia
+    "coldStart",              # Usuário novo na plataforma
+    "relLocalState",          # % relativo de notícias daquele estado
+    "relLocalRegion",         # % relativo de notícias daquela região
+    "relThemeMain",           # % relativo de notícias daquele tema
+    "relThemeSub",            # % relativo de notícias daquele subtema
+]
+
+
+# --------------------------------------------------
+#  TARGET FEATURES
+# --------------------------------------------------
 TARGET_INIT_COLS = [
-    "userId", 
+    "userId",
     "pageId",
-    "historySize", # Quantidade de páginas visitadas pelo usuário
-    "numberOfClicksHistory", # Quantidade de cliques na página
-    "timeOnPageHistory", # Tempo despendido na página
-    "scrollPercentageHistory", # Percentual de scroll da página
-    "minutesSinceLastVisit", # Minutos desde a última visita
-    "timeGapDays", # Gap entre release da notícia e consumo pelo usuário
+    "historySize",             # Qtd de páginas visitadas
+    "numberOfClicksHistory",   # Qtd de cliques
+    "timeOnPageHistory",       # Tempo na página
+    "scrollPercentageHistory", # Scroll
+    "minutesSinceLastVisit",   # Minutos desde última visita
+    "timeGapDays",             # Gap entre release e consumo
 ]
 
 TARGET_FINAL_COLS = [
-    "userId", 
+    "userId",
     "pageId",
     "TARGET"
 ]
