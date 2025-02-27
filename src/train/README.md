@@ -21,7 +21,7 @@ Este diretório contém o pipeline de preparação dos dados de treino e salvame
 - **`utils.py`** (importado pelo pipeline)  
   - **Função `prepare_features(...)`**  
     Executa a preparação dos dados, incluindo:
-    - **Frequency Encoding:** Para cada coluna categórica, calcula a frequência relativa dos valores e cria uma nova coluna com o sufixo `_freq`. Essa técnica transforma as variáveis categóricas em dados numéricos, refletindo a importância de cada categoria com base em sua ocorrência.
+    - **Frequency Encoding:** Para cada coluna categórica, calcula a frequência relativa dos valores e cria uma nova coluna com o sufixo `Freq`. Essa técnica transforma as variáveis categóricas em dados numéricos, refletindo a importância de cada categoria com base em sua ocorrência.
     - **Train-Test Split:** Divide os dados em conjuntos de treino e teste, permitindo a avaliação da performance do modelo em dados não vistos, prevenindo overfitting e garantindo uma melhor generalização.
   - **Função `load_train_data(...)`**  
     Carrega os arquivos `X_train.parquet` e `y_train.parquet` gerados no passo anterior, validando o pipeline.

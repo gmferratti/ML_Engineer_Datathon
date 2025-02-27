@@ -6,11 +6,11 @@ from sklearn.model_selection import train_test_split
 from config import logger
 from typing import Dict, Any, Tuple, List, Optional
 
-
+# TODO: Atualizar aqui
 def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     """
     Prepara os dados para treino, aplicando frequency encoding em variáveis
-    categóricas (criando novas colunas com o sufixo '_freq') e mantendo os
+    categóricas (criando novas colunas com o sufixo 'Freq') e mantendo os
     valores originais.
 
     Passos:
@@ -30,10 +30,17 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
               encoder_mapping.
     """
     logger.info("Separando features do target...")
+    
     # Separar target e features mantendo os identificadores para o merge
-    target_cols = ["userId", "pageId", "TARGET"]
-    y = raw_data[target_cols]
+    TARGET_COLS = ["userId", "pageId", "coldStart", "TARGET"]
+    
+    y = raw_data[TARGET_COLS]
     X = raw_data.drop(columns=["TARGET"])
+    
+    # TODO: Será que é a melhor abordagem? Remover o coldStart do treino? Ou faz sentido deixá-la como feature?
+    # Selecionando somente clientes que não são cold_start
+    X = X[X["coldStart"]]
+    y = y[y["coldStart"]]
 
     logger.info("Dividindo dados em treino e teste...")
     # Dividir os dados (ex.: 70% treino, 30% teste)
@@ -57,7 +64,7 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     for col in cat_cols:
         freq_encoding = X_train[col].value_counts(normalize=True)
         encoder_mapping[col] = freq_encoding.to_dict()
-        new_col = f"{col}_freq"
+        new_col = f"{col}Freq"
         X_train[new_col] = X_train[col].map(freq_encoding)
         X_test[new_col] = (
             X_test[col].map(freq_encoding).astype(float).fillna(0)
@@ -65,9 +72,23 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
 
     logger.info("Removendo identificadores...")
     # Remover os identificadores que não serão utilizados como features
-    KEY_TRAIN_COLS = ["userId", "pageId", 'localState', 'localRegion','themeMain', 'themeSub']
-    X_train_reduced = X_train.drop(columns=KEY_TRAIN_COLS, errors="ignore")
-    X_test_reduced = X_test.drop(columns=KEY_TRAIN_COLS, errors="ignore")
+    KEY_TRAIN_COLS = [
+        'userId', 
+        'pageId', 
+        'issuedDateTime',
+        'timestampHistoryDatetime',
+    ]
+    URL_COLS = [
+        'localState', 
+        'localRegion',
+        'themeMain', 
+        'themeSub',
+    ]
+    REDUNDANT_UNNECESSARY = ['userType', 'dayPeriod','coldStart']
+    COLS_TO_DROP = KEY_TRAIN_COLS + URL_COLS + REDUNDANT_UNNECESSARY
+    
+    X_train_reduced = X_train.drop(columns=COLS_TO_DROP, errors="ignore")
+    X_test_reduced = X_test.drop(columns=COLS_TO_DROP, errors="ignore")
 
     trusted_data = {
         "X_train": X_train_reduced,
