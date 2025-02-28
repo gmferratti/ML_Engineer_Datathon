@@ -49,6 +49,8 @@ Para obter mais detalhes sobre o projeto, consulte a pasta `ML_ENGINNER_DATATHON
 - **Credenciais do Google Cloud Platform (GCP)** configuradas em um arquivo `.env` na sua máquina.
   - As credenciais do GCP são necessárias para acesso aos recursos do Google Cloud utilizados no projeto.
   - Certifique-se de ter uma conta GCP e as permissões adequadas.
+- **UV** + venv para gerenciamento de pacotes e ambientes. 
+
 
 
 
