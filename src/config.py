@@ -34,7 +34,7 @@ def load_config():
     return env, config
 
 
-#ENV, CONFIG = load_config()
+ENV, CONFIG = load_config()
 
 
 def get_config(key, default=None):

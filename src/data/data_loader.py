@@ -1,32 +1,19 @@
 import pandas as pd
-from typing import List, Dict
+from typing import List
 
 
 def get_client_features(
     user_id: str,
     clients_features_df: pd.DataFrame
-) -> Dict:
-    return (
-        clients_features_df[
-            clients_features_df["userId"] == user_id
-        ].to_dict(orient="records")
-    )[0]
+) -> pd.Series:
+    return clients_features_df[clients_features_df["user_id"] == user_id].iloc[0]
 
 
 def get_non_viewed_news(
     user_id: str,
     news_features_df: pd.DataFrame
 ) -> pd.DataFrame:
-    """Pega as noticias que o usuario ainda nao viu.
-
-    Args:
-        user_id (str): ID do usuario.
-        news_features_df (DataFrame): DataFrame com as features das noticias.
-
-    Returns:
-        DataFrame: DataFrame com as noticias que o usuario ainda nao viu.
-    """
-    # TODO: Implementar logica
+    # TODO: Implementar lógica real de filtragem
     return news_features_df
 
 
@@ -36,26 +23,10 @@ def get_predicted_news(
     n: int = 5,
     score_threshold: float = 0.3,
 ) -> List[str]:
-    """Pega as noticias recomendadas.
-
-    Args:
-        scores (List[float]): Scores das noticias.
-        news_features_df (DataFrame): DataFrame com as features das noticias.
-        n (int): Quantidade de noticias a recomendar (default: 5).
-        score_threshold (float): Score minimo para considerar a recomendacao.
-
-    Returns:
-        List[str]: Lista de IDs das noticias recomendadas.
-    """
-    # TODO: Implementar logica
-    return news_features_df.head(n)["historyId"].tolist()
+    # Exemplo: retorna os primeiros 'n' IDs usando a coluna "news_id"
+    return news_features_df.head(n)["news_id"].tolist()
 
 
 def get_evaluation_data() -> pd.DataFrame:
-    """Pega os dados de avaliacao.
-
-    Returns:
-        DataFrame: DataFrame com os dados de avaliacao.
-    """
-    # TODO: Implementar logica
+    # TODO: Implementar lógica de carregamento dos dados de avaliação
     return pd.DataFrame()
