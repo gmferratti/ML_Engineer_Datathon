@@ -6,12 +6,8 @@ from config import logger
 def get_client_features(
     userId: str,
     clients_features_df: pd.DataFrame
-) -> Dict:
-    return (
-        clients_features_df[
-            clients_features_df["userId"] == userId
-        ].to_dict(orient="records")
-    )[0]
+) -> pd.Series:
+    return clients_features_df[clients_features_df["user_id"] == user_id].iloc[0]
 
 
 def get_non_viewed_news(
@@ -49,19 +45,8 @@ def get_predicted_news(
     n: int = 5,
     score_threshold: float = 0.3,
 ) -> List[str]:
-    """Pega as noticias recomendadas.
-
-    Args:
-        scores (List[float]): Scores das noticias.
-        news_features_df (DataFrame): DataFrame com as features das noticias.
-        n (int): Quantidade de noticias a recomendar (default: 5).
-        score_threshold (float): Score minimo para considerar a recomendacao.
-
-    Returns:
-        List[str]: Lista de IDs das noticias recomendadas.
-    """
-    # TODO: Implementar logica
-    return news_features_df.head(n)["historyId"].tolist()
+    # Exemplo: retorna os primeiros 'n' IDs usando a coluna "news_id"
+    return news_features_df.head(n)["news_id"].tolist()
 
 
 def get_evaluation_data() -> pd.DataFrame:

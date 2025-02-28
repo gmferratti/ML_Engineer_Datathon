@@ -58,16 +58,31 @@ check-format:
 	black --check $(LINTING_PATHS)
 	isort --check-only $(LINTING_PATHS)
 
-# MLflow
-mlflow-server:
-	mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0 --port $(MLFLOW_PORT)
-
 # Jupyter
 create-kernel:
 	python -m ipykernel install --user --name=datathon --display-name="Python (Datathon)"
 
 remove-kernel:
 	jupyter kernelspec uninstall datathon -y
+
+#######################################################################################################################################################
+################################################################### MLFLOW LOCAL ######################################################################
+#######################################################################################################################################################
+
+.PHONY: setup-mlflow
+
+setup-mlflow:
+	@echo "Criando diretório mlruns (se não existir)..."
+	mkdir -p mlruns
+	@echo "Configurando permissões para mlruns..."
+	chmod -R 777 mlruns
+	@echo "Verificando a existência de mlflow.db..."
+	[ -f mlflow.db ] || (touch mlflow.db && chmod 666 mlflow.db)
+
+mlflow-start: setup-mlflow
+	mlflow server --host 0.0.0.0 --port $(MLFLOW_PORT) 
+
+
 
 #######################################################################################################################################################
 ################################################################### PROJECT RUNNING ###################################################################
@@ -80,8 +95,8 @@ pp_features:
 # 	uv run src/train/train.py
 
 train:
-	uv run src/train/pipeline.py
-
+	PYTHONPATH="." uv run src/train/train.py   
+  
 predict:
 	uv run src/predict/predict.py
 
@@ -89,7 +104,7 @@ run_all:
 	uv run src/features/pipeline.py && uv run src/train/pipeline.py
 
 local_api:
-	uv run src/api/app.py
+	PYTHONPATH="." uv run src/api/app.py
 
 docker_api:
 	docker-compose up --build
