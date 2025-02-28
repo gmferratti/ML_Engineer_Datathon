@@ -91,11 +91,17 @@ mlflow-start: setup-mlflow
 pp_features:
 	uv run src/features/pipeline.py
 
+# train:
+# 	uv run src/train/train.py
+
 train:
 	PYTHONPATH="." uv run src/train/train.py   
-
+  
 predict:
 	uv run src/predict/predict.py
+
+run_all:
+	uv run src/features/pipeline.py && uv run src/train/pipeline.py
 
 local_api:
 	PYTHONPATH="." uv run src/api/app.py

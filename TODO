@@ -2,7 +2,12 @@
 - Implementar PP de usuarios (DONE)
 - Implementar PP de noticias (DONE)
 - Implementar pp de features combinadas notícias + usuários (DONE)
-- Proposição final de features
-- Feature selection com base em algum critério estatístico
-- Implementar treino do algoritmo de recomendação
-- Implementar predict do algoritmo de recomendação
+- Proposição final de features (DONE)
+- Feature selection com base em correlacao e ANOVA (DONE)
+- Implementar treino do algoritmo de recomendação (DONE)
+- Como implementar o group no LightGBM? (DONE)
+- FIX: Entender o porquê o coldStart está dando ruim (DONE).
+- FIX PRIORITÁRIO: Investigar o pipeline ponta a ponta. Entender volumetria e registros (DONE)
+- Consertar o target (tem muitos NAs)
+- Pensar no CV e no tuning de hiperparâmetros.
+- Implementar predict do algoritmo de recomendação a nível usuário.
