@@ -1,6 +1,5 @@
 """Módulo que gera e pré-processa as features combinando dados de notícias e usuários."""
 
-#TODO: É aqui que temos o BO de granularidade
 import pandas as pd
 import numpy as np
 

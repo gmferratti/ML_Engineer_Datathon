@@ -1,8 +1,25 @@
-PROJECT_ID: datathon-globo
-BASE_REGISTRY: s3://mlflow-artifacts
-EXPERIMENT: datathon-experiment
-TEAM: data-science
-MODEL_NAME: recommendation-model
-MLFLOW_REGISTRY_URI: http://localhost:5001
-MLFLOW_TRACKING_URI: http://localhost:5001
-SAMPLING_RATE: 0.1
+# src/configs/dev.yaml
+
+# MLflow configuration
+MLFLOW_TRACKING_URI: "http://localhost:5001"
+MLFLOW_REGISTRY_URI: "http://localhost:5001"
+EXPERIMENT: "news-recommendation-dev"
+MODEL_NAME: "news-recommender-dev"
+
+# API configuration
+API_HOST: "0.0.0.0"
+API_PORT: 8000
+MODEL_ALIAS: "champion"
+
+# Features configuration
+COLD_START_THRESHOLD: 5
+SAMPLE_RATE: 0.10
+NEWS_TEMP_PATH: "data/challenge-webmedia-e-globo-2023/itens/itens/itens-parte{}.csv"
+NEWS_N_CSV_FILES: 3
+USERS_TEMP_PATH: "data/challenge-webmedia-e-globo-2023/files/treino/treino_parte{}.csv"
+USERS_N_CSV_FILES: 6
+
+# Model hyperparameters
+MODEL_PARAMS:
+  threshold: 0.5
+  top_k: 5
