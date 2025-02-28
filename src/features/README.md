@@ -8,18 +8,7 @@ Este documento descreve as principais **features** que farão parte do treino do
 
 As variáveis de entrada do modelo (features) foram definidas para capturar diversos aspectos do comportamento do usuário, da natureza do conteúdo e do momento de consumo da notícia. Abaixo, detalhamos a forma como essas colunas estão organizadas.
 
-### 1.1 Categorias
-
-As colunas de categoria a seguir são obtidas a partir da **decomposição das URLs** do G1:
-
-- **`localState`**: Estado referente à notícia (por exemplo: “sp”, “rj”, “mg”).  
-- **`localRegion`**: Subdivisão ou microrregião do estado (por exemplo: “sao-paulo”, “rio-de-janeiro”).  
-- **`themeMain`**: Tema principal da notícia (por exemplo: “economia”, “politica”, “esporte”).  
-- **`themeSub`**: Subtema específico (por exemplo: “bolsa-de-valores”, “eleicoes-2022”).
-
-Essas variáveis permitem relacionar o conteúdo consumido pelo usuário com **regiões** e **temas** que ele costuma acessar, dando suporte a análises mais segmentadas.
-
-### 1.2 Identificação & Datas
+### 1.1 Identificação & Datas
 
 Para cada interação (par **usuário-notícia**), registram-se as seguintes colunas:
 
@@ -29,6 +18,17 @@ Para cada interação (par **usuário-notícia**), registram-se as seguintes col
 - **`timestampHistoryDatetime`**: Data e hora de **consumo** da notícia.
 
 Essas informações são cruciais para avaliar **quando** e **como** o usuário se engajou com o conteúdo, tornando possível relacionar o **tempo de vida** de uma notícia com o momento em que ela foi lida.
+
+### 1.2 Categorias
+
+As colunas de categoria a seguir são obtidas a partir da **decomposição das URLs** do G1:
+
+- **`localState`**: Estado referente à notícia (por exemplo: “sp”, “rj”, “mg”).  
+- **`localRegion`**: Subdivisão ou microrregião do estado (por exemplo: “sao-paulo”, “rio-de-janeiro”).  
+- **`themeMain`**: Tema principal da notícia (por exemplo: “economia”, “politica”, “esporte”).  
+- **`themeSub`**: Subtema específico (por exemplo: “bolsa-de-valores”, “eleicoes-2022”).
+
+Essas variáveis permitem relacionar o conteúdo consumido pelo usuário com **regiões** e **temas** que ele costuma acessar, dando suporte a análises mais segmentadas.
 
 ### 1.3 Features Sugeridas
 

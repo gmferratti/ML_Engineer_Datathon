@@ -23,7 +23,8 @@ def train_model() -> None:
     """
     Pipeline de treinamento do modelo:
       1. Carrega o DataFrame final com features e target.
-      2. Prepara os conjuntos de treino e teste e salva os dados em formato Parquet.
+      2. Prepara os conjuntos de treino e teste (incluindo split e remoção do cold_start)
+         e salva os dados em formato Parquet.
       3. Valida o carregamento dos dados.
       4. Treina o modelo LightGBMRanker e salva o modelo treinado em formato pickle.
       5. Valida o salvamento do modelo recarregando o arquivo pickle.
@@ -32,10 +33,21 @@ def train_model() -> None:
     final_feats_file = os.path.join("data", "features", "final_feats_with_target.parquet")
     logger.info("Carregando features finais com target de %s...", final_feats_file)
     final_feats = pd.read_parquet(final_feats_file)
+    logger.info("Shape do dataframe final_feats (antes do split e remoção do cold_start): %s", final_feats.shape)
 
-    # 2. Preparar conjuntos de treino e teste
-    logger.info("Preparando os conjuntos de treino e teste...")
+    # 2. Preparar conjuntos de treino e teste (split e remoção do cold_start)
+    logger.info("Preparando os conjuntos de treino e teste (split e remoção do cold_start)...")
     trusted_data = prepare_features(final_feats)
+
+    # Log dos shapes após o split e remoção do cold_start para cada item em trusted_data
+    if isinstance(trusted_data, dict):
+        for key, data in trusted_data.items():
+            try:
+                # Converter para DataFrame se necessário para garantir a obtenção do shape
+                data_df = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
+                logger.info("Shape do dataframe '%s' (após split e remoção do cold_start): %s", key, data_df.shape)
+            except Exception as error:
+                logger.warning("Não foi possível determinar o shape de '%s': %s", key, error)
 
     # Criar diretório base para salvar os dados de treino
     train_base_path = os.path.join("data", "train")
@@ -55,7 +67,7 @@ def train_model() -> None:
 
         file_name = f"{key}.parquet"
         file_path = os.path.join(train_base_path, file_name)
-        logger.info("Salvando '%s'...", file_name)
+        logger.info("Salvando '%s' em %s com shape: %s", key, file_path, data.shape)
         save_dataframe_as_parquet(data, file_path)
 
     logger.info("Pipeline de preparação de features concluído!")
@@ -67,7 +79,6 @@ def train_model() -> None:
 
     # 4. Carregar os dados para treino do modelo
     logger.info("Carregando dados para treino do modelo...")
-    # Assume que os arquivos X_train, y_train e group_train foram salvos no passo anterior
     x_train_path = os.path.join(train_base_path, "X_train.parquet")
     y_train_path = os.path.join(train_base_path, "y_train.parquet")
     group_train_path = os.path.join(train_base_path, "group_train.parquet")
