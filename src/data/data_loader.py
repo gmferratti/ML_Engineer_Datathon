@@ -7,7 +7,7 @@ def get_client_features(
     userId: str,
     clients_features_df: pd.DataFrame
 ) -> pd.Series:
-    return clients_features_df[clients_features_df["user_id"] == user_id].iloc[0]
+    return clients_features_df[clients_features_df["userId"] == userId].iloc[0]
 
 
 def get_non_viewed_news(
@@ -40,13 +40,26 @@ def get_non_viewed_news(
     return unread
 
 def get_predicted_news(
-    scores: List[float],
+    scores: list,
     news_features_df: pd.DataFrame,
     n: int = 5,
-    score_threshold: float = 0.3,
-) -> List[str]:
-    # Exemplo: retorna os primeiros 'n' IDs usando a coluna "news_id"
-    return news_features_df.head(n)["news_id"].tolist()
+    score_threshold: int = 15,
+) -> list:
+    """
+    Exemplo: retorna os 'n' primeiros IDs de notícias (coluna 'news_id') cujos scores excedem o threshold.
+    Essa função deve ser adaptada à sua lógica de recomendação.
+    """
+    # Cria um DataFrame com os scores para facilitar a ordenação
+    news_features_df = news_features_df.copy()
+    news_features_df["TARGET"] = scores
+    
+    # Filtra notícias com score acima do threshold e ordena em ordem decrescente
+    filtered = news_features_df[news_features_df["TARGET"] >= score_threshold].sort_values(
+        by="score", ascending=False
+    )
+    # Retorna os IDs das notícias recomendadas (supondo que exista a coluna 'news_id')
+    return filtered.head(n)["pageId"].tolist()
+
 
 
 def get_evaluation_data() -> pd.DataFrame:

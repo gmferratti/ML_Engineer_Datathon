@@ -9,13 +9,13 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from src.predict.predict import predict_for_user_id
-from src.config import get_config
+from predict.predict import predict_for_user_id
+from config import get_config
 
 # Configuração de logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s"
 )
 logger = logging.getLogger("api")
 
@@ -84,7 +84,7 @@ def load_mlflow_model():
         return model
     except Exception as e:
         logger.error(f"Erro ao carregar modelo: {e}")
-        from src.recomendation_model.mocked_model import MockedRecommender
+        from recomendation_model.mocked_model import MockedRecommender
         logger.warning("Usando modelo mockado devido a erro ao carregar do MLflow")
         return MockedRecommender()
 
