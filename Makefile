@@ -96,7 +96,8 @@ pp_features:
 # 	uv run src/train/train.py
 
 train:
-	PYTHONPATH="." uv run src/train/train.py   
+	# PYTHONPATH="."
+	uv run src/train/train.py   
   
 predict:
 	uv run src/predict/predict.py
@@ -115,4 +116,4 @@ docker_api:
 # 1. instale o MakeFile usando choco install make no VSCode (modo Admin) 
 # 2. Garanta que você esteja usando o GitBash com PYTHONPATH configurado corretamente.
 # 3. Caso esteja salvando as informações em algum Drive, evite usar o hard link do UV
-# Para isso, configure: export UV_LINK_MODE=copy. Irá ficar mais lento, mas pelo menos funcionará.
+# Para isso, configure: export UV_LINK_MODE=copy. Irá ficar mais lento, mas pelo menos

@@ -3,13 +3,13 @@ from typing import Dict
 
 from config import configure_mlflow, get_config
 from recomendation_model.mocked_model import MockedRecommender, MLflowWrapper
-from recomendation_model.base_model import BaseRecommender
-from features.schemas import get_model_signature, create_mock_input_example
+from recomendation_model.base_model import LightGBMRanker
+from features.schemas import get_model_signature, create_mock_input_example, create_valid_input_example
 from evaluation.utils import evaluate_model
-from train.utils import load_train_data
+from utils import load_train_data
 from data.data_loader import get_evaluation_data
 
-def train_model(model_params : Dict = {}) -> BaseRecommender:
+def train_model(model_params : Dict = {}) -> LightGBMRanker:
     """Treina o modelo de recomendacao.
 
     Args:
@@ -20,13 +20,13 @@ def train_model(model_params : Dict = {}) -> BaseRecommender:
     """
     X_train, y_train = load_train_data()
     evaluation_data = get_evaluation_data()
-
-    input_example = create_mock_input_example()
+    signature = get_model_signature()
+    input_example = create_valid_input_example()
 
     # Inicia um novo experimento
     with mlflow.start_run() as run:
         # Cria e treina o modelo
-        model = MockedRecommender(**model_params)
+        model = LightGBMRanker(**model_params)
         model.train(X_train, y_train)
 
         # Loga parâmetros
@@ -41,8 +41,9 @@ def train_model(model_params : Dict = {}) -> BaseRecommender:
         mlflow.pyfunc.log_model(
             artifact_path=get_config('MODEL_NAME'),
             python_model=wrapper,
-            signature=get_model_signature(),
-            input_example=input_example
+            signature=signature,
+            input_example=input_example,
+            pip_requirements='requirements.txt' # só para evitar warnings. Atualize com pip freeze
         )
 
         # Guarda o run_id
