@@ -1,2 +1,26 @@
-MLFLOW_TRACKING_URI: "http://prod-mlflow-server:5000"
-SAMPLING_RATE: 1.0
+# src/configs/dev.yaml
+
+# MLflow configuration
+MLFLOW_TRACKING_URI: "http://35.173.177.71:5000"
+MLFLOW_REGISTRY_URI: "http://35.173.177.71:5000"
+MLFLOW_ARTIFACT_ROOT: "s3://mlflow-datathon-grupo57" 
+EXPERIMENT: "news-recommendation-prod"
+MODEL_NAME: "news-recommender-prod"
+
+# API configuration
+API_HOST: "0.0.0.0"
+API_PORT: 8000
+MODEL_ALIAS: "champion"
+
+# Features configuration
+COLD_START_THRESHOLD: 5
+SAMPLE_RATE: 0.10
+NEWS_TEMP_PATH: "data/challenge-webmedia-e-globo-2023/itens/itens/itens-parte{}.csv"
+NEWS_N_CSV_FILES: 3
+USERS_TEMP_PATH: "data/challenge-webmedia-e-globo-2023/files/treino/treino_parte{}.csv"
+USERS_N_CSV_FILES: 6
+
+# Model hyperparameters
+MODEL_PARAMS:
+  threshold: 0.5
+  top_k: 5

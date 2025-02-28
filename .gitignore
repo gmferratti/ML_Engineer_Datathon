@@ -63,6 +63,12 @@ pytest_cache/
 .env
 .env.*
 
+# credentials
+*.pem
+*.key
+.aws/credentials
+
+
 # virtualenv
 venv/
 ENV/

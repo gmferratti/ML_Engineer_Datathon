@@ -1,6 +1,6 @@
 # LightGBMRanker - Modelo de Aprendizado de Ranking
 
-Este documento descreve o funcionamento do `LightGBMRanker`, que é uma implementação de um modelo de **aprendizado de ranking** baseado no [LightGBM](https://lightgbm.readthedocs.io/), utilizando como objetivo de otimização o [lambdarank](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-82.pdf)
+Este documento descreve o funcionamento do `LightGBMRanker`, que é uma implementação de um modelo de **aprendizado de ranking** baseado no [LightGBM](https://lightgbm.readthedocs.io/), utilizando como objetivo de otimização o [lambdarank](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-82.pdf). O LightGBM (Light Gradient Boosting Machine) é uma biblioteca de machine learning desenvolvida pela Microsoft que implementa técnicas de boosting de gradiente, ou seja, métodos que combinam várias árvores de decisão de forma sequencial para melhorar a performance preditiva.
 
 ---
 
