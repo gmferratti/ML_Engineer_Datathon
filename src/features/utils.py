@@ -1,9 +1,8 @@
 import os
-import glob
 import pandas as pd
 from typing import Optional
 from storage.io import Storage
-from config import USE_S3, DATA_PATH, logger
+from src.config import USE_S3, DATA_PATH, logger
 
 
 def concatenate_csv_files(directory_path: str) -> pd.DataFrame:
@@ -20,17 +19,18 @@ def concatenate_csv_files(directory_path: str) -> pd.DataFrame:
     df_concat = pd.DataFrame()
     files_processed = 0
     try:
-        if USE_S3:
-            csv_files = storage.list_files(directory_path, "*.csv")
-        else:
-            pattern = os.path.join(directory_path, "*.csv")
-            csv_files = glob.glob(pattern)
+        csv_files = storage.list_files(directory_path, "*.csv")
+
         logger.info("Encontrados %d CSVs em %s", len(csv_files), directory_path)
         for file_path in csv_files:
             try:
                 df = storage.read_csv(file_path)
-                logger.info("Arquivo: %s, linhas: %d, cols: %d",
-                            os.path.basename(file_path), len(df), len(df.columns))
+                logger.info(
+                    "Arquivo: %s, linhas: %d, cols: %d",
+                    os.path.basename(file_path),
+                    len(df),
+                    len(df.columns),
+                )
                 df_concat = pd.concat([df_concat, df])
                 files_processed += 1
             except Exception as e:
@@ -71,8 +71,7 @@ def get_full_path(relative_path: str) -> str:
     return os.path.join(DATA_PATH, relative_path)
 
 
-def save_dataframe(df: pd.DataFrame, path: str,
-                   storage: Optional[Storage] = None) -> None:
+def save_dataframe(df: pd.DataFrame, path: str, storage: Optional[Storage] = None) -> None:
     """
     Salva um DataFrame como Parquet.
 
@@ -88,8 +87,7 @@ def save_dataframe(df: pd.DataFrame, path: str,
     logger.info("DataFrame salvo em: %s, linhas: %d", full_path, len(df))
 
 
-def load_dataframe(path: str,
-                   storage: Optional[Storage] = None) -> pd.DataFrame:
+def load_dataframe(path: str, storage: Optional[Storage] = None) -> pd.DataFrame:
     """
     Carrega um DataFrame de um arquivo Parquet.
 

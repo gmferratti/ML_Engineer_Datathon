@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from .constants import TARGET_INIT_COLS, TARGET_FINAL_COLS, DEFAULT_TARGET_VALUES
-from config import SCALING_RANGE, logger
+from src.config import SCALING_RANGE, logger
 
 
 def preprocess_target(df_users: pd.DataFrame, gap_df: pd.DataFrame) -> pd.DataFrame:
@@ -13,13 +13,13 @@ def preprocess_target(df_users: pd.DataFrame, gap_df: pd.DataFrame) -> pd.DataFr
         gap_df (pd.DataFrame): Dados do gap temporal.
 
     Returns:
-        pd.DataFrame: DataFrame com colunas ["userId", "pageId", "TARGET"].
+        pd.DataFrame: DataFrame com as colunas ["userId", "pageId", "TARGET"].
     """
     logger.info("Iniciando preprocessamento do target...")
-    logger.info("Merge: df_users (%s linhas) e gap_df (%s linhas).",
-                len(df_users), len(gap_df))
+    logger.info("Merge: df_users (%d linhas) e gap_df (%d linhas).", len(df_users), len(gap_df))
     target_df = df_users.merge(gap_df, on=["userId", "pageId"], how="left")[
-        TARGET_INIT_COLS].copy()
+        TARGET_INIT_COLS
+    ].copy()
     logger.info("Merge concluído. Shape: %s", target_df.shape)
     for col, default in DEFAULT_TARGET_VALUES.items():
         if col in target_df.columns:

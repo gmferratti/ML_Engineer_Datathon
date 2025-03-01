@@ -12,7 +12,7 @@ MODEL_ALIAS: "champion"
 # Storage configuration
 USE_S3: false
 S3_BUCKET: "fiap-mleng-datathon-data-grupo57"
-DATA_PATH: "data/"
+LOCAL_DATA_PATH: "data/"
 
 # Features configuration
 COLD_START_THRESHOLD: 5

@@ -4,7 +4,7 @@ from typing import List
 from src.data.data_loader import (
     get_client_features,
     # get_non_viewed_news,
-    get_predicted_news
+    get_predicted_news,
 )
 from src.config import DATA_PATH, logger, USE_S3
 from src.train.core import load_model_from_mlflow
@@ -32,8 +32,9 @@ def prepare_for_prediction() -> str:
     return save_path
 
 
-def predict_for_userId(userId: str, full_df: pd.DataFrame, model,
-                       n: int = 5, score_threshold: float = 15) -> List[str]:
+def predict_for_userId(
+    userId: str, full_df: pd.DataFrame, model, n: int = 5, score_threshold: float = 15
+) -> List[str]:
     """
     Gera recomendações para um usuário com base no dataframe completo.
 
@@ -55,12 +56,10 @@ def predict_for_userId(userId: str, full_df: pd.DataFrame, model,
     client_feat = get_client_features(userId, full_df)
     client_df = pd.DataFrame([client_feat])
     model_input = non_viewed.assign(userId=userId).merge(
-        client_df.drop(columns=["userId"]), how="cross",
-        suffixes=("_news", "_user")
+        client_df.drop(columns=["userId"]), how="cross", suffixes=("_news", "_user")
     )
     scores = model.predict(model_input)
-    return get_predicted_news(scores, non_viewed, n=n,
-                              score_threshold=score_threshold)
+    return get_predicted_news(scores, non_viewed, n=n, score_threshold=score_threshold)
 
 
 def main():

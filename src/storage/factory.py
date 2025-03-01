@@ -5,8 +5,7 @@ from storage.local import LocalStorage
 from storage.s3 import S3Storage
 
 
-def create_storage(use_s3: Optional[bool] = None,
-                   s3_bucket: Optional[str] = None) -> BaseStorage:
+def create_storage(use_s3: Optional[bool] = None, s3_bucket: Optional[str] = None) -> BaseStorage:
     """
     Cria a instância de armazenamento (local ou S3).
 

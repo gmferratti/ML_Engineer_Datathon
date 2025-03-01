@@ -35,8 +35,7 @@ class LightGBMRanker(BaseRecommender):
             if np.sum(group) != X.shape[0]:
                 raise ValueError("Soma de 'group' diferente do total de linhas em X.")
         train_data = lgb.Dataset(X, label=y, group=group)
-        self.model = lgb.train(self.params, train_data,
-                               num_boost_round=self.num_boost_round)
+        self.model = lgb.train(self.params, train_data, num_boost_round=self.num_boost_round)
 
     def predict(self, model_input):
         """

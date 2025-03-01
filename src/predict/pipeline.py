@@ -4,6 +4,7 @@ from typing import List, Optional
 from src.config import DATA_PATH, logger, USE_S3
 from storage.io import Storage
 from src.data.data_loader import get_client_features, get_non_viewed_news
+
 # Note: IMPORT get_predicted_news se necessário
 from src.predict.constants import EXPECTED_COLUMNS
 
@@ -31,9 +32,14 @@ def prepare_for_prediction(storage: Optional[Storage] = None) -> None:
     logger.info("Arquivos salvos: %s e %s", news_save, client_save)
 
 
-def predict_for_userId(userId: str, news_df: pd.DataFrame,
-                       client_df: pd.DataFrame, model,
-                       n: int = 5, score_threshold: float = 0.3) -> List[str]:
+def predict_for_userId(
+    userId: str,
+    news_df: pd.DataFrame,
+    client_df: pd.DataFrame,
+    model,
+    n: int = 5,
+    score_threshold: float = 0.3,
+) -> List[str]:
     """
     Gera recomendações de notícias para um usuário.
 
@@ -54,10 +60,9 @@ def predict_for_userId(userId: str, news_df: pd.DataFrame,
         logger.warning("Nenhuma notícia disponível para recomendar.")
         return []
     model_input = non_viewed.assign(userId=userId).merge(
-        client_feat.drop(columns=["userId"]), how="cross",
-        suffixes=("_news", "_user")
+        client_feat.drop(columns=["userId"]), how="cross", suffixes=("_news", "_user")
     )
     scores = model.predict(model_input)
     from src.data.data_loader import get_predicted_news
-    return get_predicted_news(scores, non_viewed, n=n,
-                              score_threshold=score_threshold)
+
+    return get_predicted_news(scores, non_viewed, n=n, score_threshold=score_threshold)

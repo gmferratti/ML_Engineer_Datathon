@@ -3,16 +3,18 @@ import pandas as pd
 import mlflow
 from typing import Dict, Any, Optional
 from src.config import logger, DATA_PATH, get_config
-from src.features.schemas import get_model_signature, create_mock_input_example
-from src.recomendation_model.base_model import BaseRecommender
-from src.recomendation_model.mocked_model import MLflowWrapper
+from src.features.schemas import get_model_signature, create_valid_input_example
+from src.recommendation_model.base_model import BaseRecommender
+from src.recommendation_model.mocked_model import MLflowWrapper
 
 
-def log_model_to_mlflow(model: BaseRecommender,
-                        model_name: Optional[str] = None,
-                        run_id: Optional[str] = None,
-                        register: bool = True,
-                        set_as_champion: bool = True) -> str:
+def log_model_to_mlflow(
+    model: BaseRecommender,
+    model_name: Optional[str] = None,
+    run_id: Optional[str] = None,
+    register: bool = True,
+    set_as_champion: bool = True,
+) -> str:
     """
     Registra o modelo no MLflow e opcionalmente no Model Registry.
 
@@ -28,14 +30,14 @@ def log_model_to_mlflow(model: BaseRecommender,
     """
     if model_name is None:
         model_name = get_config("MODEL_NAME", "news-recommender")
-    input_ex = create_mock_input_example()
+    input_ex = create_valid_input_example()
     signature = get_model_signature()
     wrapper = MLflowWrapper(model)
     mlflow.pyfunc.log_model(
         artifact_path=model_name,
         python_model=wrapper,
         signature=signature,
-        input_example=input_ex
+        input_example=input_ex,
     )
     if not register or run_id is None:
         logger.info("Modelo salvo sem registro no Model Registry")
@@ -43,14 +45,15 @@ def log_model_to_mlflow(model: BaseRecommender,
     model_uri = f"runs:/{run_id}/{model_name}"
     try:
         model_details = mlflow.register_model(model_uri=model_uri, name=model_name)
-        logger.info("Modelo registrado: %s, versão %s",
-                    model_details.name, model_details.version)
+        logger.info("Modelo registrado: %s, versão %s", model_details.name, model_details.version)
         if set_as_champion:
             client = mlflow.MlflowClient()
-            client.set_registered_model_alias(model_name, "champion",
-                                              model_details.version)
-            logger.info("Alias 'champion' definido para versão %s do modelo %s",
-                        model_details.version, model_name)
+            client.set_registered_model_alias(model_name, "champion", model_details.version)
+            logger.info(
+                "Alias 'champion' definido para versão %s do modelo %s",
+                model_details.version,
+                model_name,
+            )
     except Exception as e:
         logger.warning("Não foi possível registrar o modelo: %s", e)
         logger.info("URI do modelo: %s", model_uri)
@@ -59,8 +62,9 @@ def log_model_to_mlflow(model: BaseRecommender,
     return model_uri
 
 
-def load_model_from_mlflow(model_name: Optional[str] = None,
-                           model_alias: Optional[str] = None) -> Any:
+def load_model_from_mlflow(
+    model_name: Optional[str] = None, model_alias: Optional[str] = None
+) -> Any:
     """
     Carrega um modelo registrado no MLflow.
 
@@ -97,8 +101,7 @@ def log_encoder_mapping(trusted_data: Dict[str, Any]) -> None:
     mlflow.log_artifact(encoder_path)
 
 
-def log_basic_metrics(X_train: pd.DataFrame,
-                      metrics: Optional[Dict[str, float]] = None) -> None:
+def log_basic_metrics(X_train: pd.DataFrame, metrics: Optional[Dict[str, float]] = None) -> None:
     """
     Registra métricas básicas de treinamento no MLflow.
 

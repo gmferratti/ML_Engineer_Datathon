@@ -17,7 +17,7 @@ from data.data_loader import load_data_for_prediction, load_model
 # Configuração de logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s",
 )
 logger = logging.getLogger("api")
 
@@ -27,8 +27,9 @@ logger = logging.getLogger("api")
 class PredictRequest(BaseModel):
     user_id: str = Field(..., description="ID do usuário para recomendação")
     max_results: int = Field(5, description="Número máximo de recomendações")
-    min_score: float = Field(0.3, alias="minScore",
-                             description="Score mínimo para considerar uma recomendação")
+    min_score: float = Field(
+        0.3, alias="minScore", description="Score mínimo para considerar uma recomendação"
+    )
 
     class Config:
         allow_population_by_field_name = True
@@ -93,9 +94,11 @@ def load_mlflow_model():
             return load_model(storage)
         except Exception as e2:
             logger.error(f"Também falhou ao carregar modelo do armazenamento: {e2}")
-            from recomendation_model.mocked_model import MockedRecommender
+            from src.recommendation_model.mocked_model import MockedRecommender
+
             logger.warning(
-                "Usando modelo mockado devido a erro ao carregar do MLflow e do armazenamento")
+                "Usando modelo mockado devido a erro ao carregar do MLflow e do armazenamento"
+            )
             return MockedRecommender()
 
 
@@ -109,21 +112,22 @@ def load_prediction_data() -> Dict[str, pd.DataFrame]:
     except Exception as e:
         logger.error(f"Erro ao carregar dados para predição: {e}")
         # Retorna dados mockados em caso de erro
-        news_data = pd.DataFrame({
-            "pageId": [f"news_{i}" for i in range(1, 101)],
-            # Colunas extras para a resposta
-            "title": [f"Notícia {i}" for i in range(1, 101)],
-            "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)]
-        })
+        news_data = pd.DataFrame(
+            {
+                "pageId": [f"news_{i}" for i in range(1, 101)],
+                # Colunas extras para a resposta
+                "title": [f"Notícia {i}" for i in range(1, 101)],
+                "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
+            }
+        )
 
-        user_data = pd.DataFrame({
-            "userId": [f"user_{i}" for i in range(1, 21)],
-        })
+        user_data = pd.DataFrame(
+            {
+                "userId": [f"user_{i}" for i in range(1, 21)],
+            }
+        )
 
-        return {
-            "news_features": news_data,
-            "clients_features": user_data
-        }
+        return {"news_features": news_data, "clients_features": user_data}
 
 
 def get_model():
@@ -141,11 +145,11 @@ def get_prediction_data():
 def get_model_version(model=Depends(get_model)) -> str:
     try:
         # Tenta obter a versão do modelo MLflow
-        if hasattr(model, 'metadata') and hasattr(model.metadata, 'get'):
+        if hasattr(model, "metadata") and hasattr(model.metadata, "get"):
             return model.metadata.get("mlflow.runName", "unknown")
         # Para modelo carregado do arquivo pickle
-        elif hasattr(model, '__version__'):
-            return getattr(model, '__version__')
+        elif hasattr(model, "__version__"):
+            return getattr(model, "__version__")
         # Versão padrão
         return "unknown"
     except Exception as e:
@@ -161,7 +165,7 @@ async def health_check(model=Depends(get_model)):
             status="ok",
             model_status="loaded",
             model_version=model_version,
-            environment=os.getenv("ENV", "dev")
+            environment=os.getenv("ENV", "dev"),
         )
     except Exception as e:
         logger.error(f"Erro no health check: {e}")
@@ -184,7 +188,7 @@ def predict(request: PredictRequest):
             clients_features_df=clients_features_df,
             model=model,
             n=request.max_results,
-            score_threshold=request.min_score
+            score_threshold=request.min_score,
         )
 
         # Transforma cada ID em um objeto NewsItem
@@ -207,7 +211,7 @@ def predict(request: PredictRequest):
             recommendations=rec_items,
             model_version=get_model_version(model),
             cold_start=False,
-            processing_time_ms=processing_time_ms
+            processing_time_ms=processing_time_ms,
         )
     except Exception as e:
         logger.error(f"Erro na predição: {e}")
@@ -219,7 +223,7 @@ async def model_info(model=Depends(get_model)):
     try:
         # Tenta obter os metadados do modelo
         try:
-            if hasattr(model, 'metadata') and hasattr(model.metadata, 'to_dict'):
+            if hasattr(model, "metadata") and hasattr(model.metadata, "to_dict"):
                 metadata = model.metadata.to_dict()
             else:
                 metadata = {"warning": "Metadados não disponíveis"}
@@ -231,7 +235,7 @@ async def model_info(model=Depends(get_model)):
             "model_version": get_model_version(model),
             "environment": os.getenv("ENV", "dev"),
             "metadata": metadata,
-            "timestamp": pd.Timestamp.now().isoformat()
+            "timestamp": pd.Timestamp.now().isoformat(),
         }
     except Exception as e:
         logger.error(f"Erro ao obter informações do modelo: {e}")
@@ -257,6 +261,7 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
+
     host = get_config("API_HOST", "0.0.0.0")
     port = int(get_config("API_PORT", 8000))
     uvicorn.run("app:app", host=host, port=port, reload=True)

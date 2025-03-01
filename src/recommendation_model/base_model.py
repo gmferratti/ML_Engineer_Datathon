@@ -16,11 +16,13 @@ class BaseRecommender(ABC):
             "learning_rate": 0.05,
             "num_leaves": 39,
             "verbose": -1,
-            "label_gain": [2**i - 1 for i in range(101)]
+            "label_gain": [2**i - 1 for i in range(101)],
         }
         if params is not None:
-            if (params.get("objective", default_params["objective"]) ==
-                    "lambdarank" and "label_gain" not in params):
+            if (
+                params.get("objective", default_params["objective"]) == "lambdarank"
+                and "label_gain" not in params
+            ):
                 params["label_gain"] = [2**i - 1 for i in range(101)]
             self.params = params
         else:

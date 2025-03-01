@@ -1,7 +1,7 @@
 import mlflow
 from typing import Dict
 from src.config import configure_mlflow, get_config
-from src.recomendation_model.lgbm_ranker import LightGBMRanker
+from src.recommendation_model.lgbm_ranker import LightGBMRanker
 from src.train.core import log_model_to_mlflow, log_basic_metrics, get_run_name
 from src.evaluation.utils import evaluate_model
 from src.train.utils import load_train_data

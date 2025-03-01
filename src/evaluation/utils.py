@@ -2,7 +2,7 @@ from typing import Dict
 from src.train.constants import CLIENT_FEATURES, NEWS_FEATURES
 import pandas as pd
 import numpy as np
-from recomendation_model.base_model import BaseRecommender
+from src.recommendation_model.base_model import BaseRecommender
 from sklearn.metrics import ndcg_score
 
 
@@ -31,19 +31,15 @@ def evaluate_model(
     news_feats = X[NEWS_FEATURES].values
 
     # Obter predições (scores) do modelo
-    y_pred = model.predict({
-        "client_features": client_feats,
-        "news_features": news_feats
-    })
+    y_pred = model.predict({"client_features": client_feats, "news_features": news_feats})
 
     # Verifica que real e predito têm o mesmo tamanho
     assert len(y_true) == len(
-        y_pred), f"Dimensão incompatível: y_true tem {len(y_true)}, y_pred tem {len(y_pred)}"
+        y_pred
+    ), f"Dimensão incompatível: y_true tem {len(y_true)}, y_pred tem {len(y_pred)}"
 
     # Calcula o score usando objetos array-like
     ndcg_val = ndcg_score(np.array([y_true]), np.array([y_pred]), k=k_ndcg)
 
-    metrics = {
-        f"NDCG_{k_ndcg}": ndcg_val
-    }
+    metrics = {f"NDCG_{k_ndcg}": ndcg_val}
     return metrics
