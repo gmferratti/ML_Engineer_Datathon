@@ -10,7 +10,8 @@ dependencies = [
     "fastapi==0.115.8",
     "uvicorn==0.34.0",
     "mlflow==2.20.1",
-    "boto3==1.37.2",
+    "boto3==1.36.23",
+    "s3fs==2025.2.0",
     "python-dotenv==1.0.1",
     "pandas==2.2.3",
     "numpy==2.0.2",
@@ -25,6 +26,7 @@ dependencies = [
     "ipykernel==6.29.5",
     "lightgbm>=4.6.0",
     "category-encoders>=2.6.4",
+    "nltk==3.9.1"
 ]
 
 [project.optional-dependencies]

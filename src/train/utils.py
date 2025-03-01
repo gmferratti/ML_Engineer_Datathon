@@ -3,8 +3,10 @@ import numpy as np
 import os
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.model_selection import train_test_split
-from config import logger
+from config import logger, DATA_PATH
+from storage.io import Storage
 from typing import Dict, Any, Tuple, List, Optional
+
 
 def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     """
@@ -29,24 +31,25 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
               encoder_mapping.
     """
     logger.info("Separando features do target...")
-    
+
     # Separar target e features mantendo os identificadores para o merge
-    TARGET_COLS = ["userId", "pageId", "coldStart","TARGET"]
-    
+    TARGET_COLS = ["userId", "pageId", "coldStart", "TARGET"]
+
     y = raw_data[TARGET_COLS]
     X = raw_data.drop(columns=["TARGET"])
-    
+
     # Selecionando somente clientes que não são cold_start
     cold_start_regs = (X[X["coldStart"]]).shape[0]
-    
+
     logger.info(f"Removido {cold_start_regs} registros cold start")
-    
+
     X = X[~X["coldStart"]]
     y = y[~y["coldStart"]]
-    
+
     non_cold_start_regs = X.shape[0]
-    cold_start_proportion = round(100 * (cold_start_regs/(non_cold_start_regs+cold_start_regs)),2)
-    
+    cold_start_proportion = round(
+        100 * (cold_start_regs/(non_cold_start_regs+cold_start_regs)), 2)
+
     logger.info(f"Proporção de registros cold_start: {cold_start_proportion} %")
 
     logger.info("Dividindo dados em treino e teste...")
@@ -78,31 +81,33 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
         )
 
     logger.info("Removendo identificadores...")
-    
+
     # Remover os identificadores que não serão utilizados como features
     KEY_TRAIN_COLS = [
-        'userId', 
-        'pageId', 
+        'userId',
+        'pageId',
         'issuedDatetime',
         'timestampHistoryDatetime',
     ]
     URL_COLS = [
-        'localState', 
+        'localState',
         'localRegion',
-        'themeMain', 
+        'themeMain',
         'themeSub',
     ]
-    REDUNDANT_UNNECESSARY = ['userType', 'dayPeriod','coldStart']
+    REDUNDANT_UNNECESSARY = ['userType', 'dayPeriod', 'coldStart']
     COLS_TO_DROP = KEY_TRAIN_COLS + URL_COLS + REDUNDANT_UNNECESSARY
-    
+
     # Cria DataFrame com o número de interações por usuário (groupCount)
     group_train = X_train.groupby("userId").size().reset_index(name="groupCount")
     group_test = X_test.groupby("userId").size().reset_index(name="groupCount")
 
     # Verifica se a soma dos grupos é igual ao número total de linhas do dataset
-    assert group_train["groupCount"].sum() == len(X_train), "A soma dos grupos deve ser igual ao número total de linhas em X_train"
-    assert group_test["groupCount"].sum() == len(X_test), "A soma dos grupos deve ser igual ao número total de linhas em X_test"
-    
+    assert group_train["groupCount"].sum() == len(
+        X_train), "A soma dos grupos deve ser igual ao número total de linhas em X_train"
+    assert group_test["groupCount"].sum() == len(
+        X_test), "A soma dos grupos deve ser igual ao número total de linhas em X_test"
+
     X_train_reduced = X_train.drop(columns=COLS_TO_DROP, errors="ignore")
     X_test_reduced = X_test.drop(columns=COLS_TO_DROP, errors="ignore")
 
@@ -121,23 +126,33 @@ def prepare_features(raw_data: pd.DataFrame) -> Dict[str, Any]:
     return trusted_data
 
 
-def load_train_data() -> Tuple[pd.DataFrame, pd.DataFrame]:
+def load_train_data(storage: Optional[Storage] = None) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Carrega os dados de treino a partir de arquivos Parquet.
+
+    Args:
+        storage (Storage, opcional): Instância de Storage para I/O.
+            Se não for fornecido, cria uma nova instância.
 
     Returns:
         Tuple[pd.DataFrame, pd.DataFrame]: DataFrames contendo X_train e y_train.
     """
-    base_train_path = os.path.join("data", "train")
+    # Se não for fornecido um objeto Storage, cria um novo
+    if storage is None:
+        from config import USE_S3
+        storage = Storage(use_s3=USE_S3)
+
+    # Define os caminhos dos arquivos
+    base_train_path = os.path.join(DATA_PATH, "train")
     X_train_path = os.path.join(base_train_path, "X_train.parquet")
     y_train_path = os.path.join(base_train_path, "y_train.parquet")
-    
+
     logger.info(f"Carregando X_train de {X_train_path}...")
-    X_train = pd.read_parquet(X_train_path)
-    
+    X_train = storage.read_parquet(X_train_path)
+
     logger.info(f"Carregando y_train de {y_train_path}...")
-    y_train = pd.read_parquet(y_train_path)
-    
+    y_train = storage.read_parquet(y_train_path)
+
     return X_train, y_train
 
 

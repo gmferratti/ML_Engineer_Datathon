@@ -1,16 +1,16 @@
 CLIENT_FEATURES = [
-    'userTypeFreq', 
-    'isWeekend', 
-    'dayPeriodFreq',
+    "userTypeFreq",
+    "isWeekend",
+    "dayPeriodFreq",
 ]
 
 NEWS_FEATURES = [
-    'relLocalState', 
-    'relLocalRegion',
-    'relThemeMain', 
-    'relThemeSub',  
-    'localStateFreq', 
-    'localRegionFreq', 
-    'themeMainFreq',
-    'themeSubFreq',
+    "relLocalState",
+    "relLocalRegion",
+    "relThemeMain",
+    "relThemeSub",
+    "localStateFreq",
+    "localRegionFreq",
+    "themeMainFreq",
+    "themeSubFreq",
 ]
