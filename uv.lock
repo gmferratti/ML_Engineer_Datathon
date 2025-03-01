@@ -2162,6 +2162,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
+    { name = "category-encoders", version = "2.6.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "category-encoders", version = "2.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "fastapi" },
     { name = "ipykernel" },
@@ -2171,6 +2172,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "mlflow" },
     { name = "nltk" },
+    { name = "notebook" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pytest" },
@@ -2206,6 +2208,7 @@ requires-dist = [
     { name = "matplotlib", specifier = "==3.9.4" },
     { name = "mlflow", specifier = "==2.20.1" },
     { name = "nltk", specifier = "==3.9.1" },
+    { name = "notebook", specifier = ">=7.3.2" },
     { name = "numpy", specifier = "==2.0.2" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = "==4.1.0" },

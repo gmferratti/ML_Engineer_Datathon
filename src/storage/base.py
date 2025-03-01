@@ -7,6 +7,7 @@ class BaseStorage(ABC):
     """
     Interface para operações de armazenamento.
     """
+
     @abstractmethod
     def read_parquet(self, path: str, **kwargs) -> pd.DataFrame:
         """

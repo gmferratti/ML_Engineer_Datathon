@@ -1,6 +1,6 @@
 import pandas as pd
 from .constants import USERS_COLS_TO_EXPLODE, USERS_DTYPES
-from config import SAMPLE_RATE, COLD_START_THRESHOLD, USERS_DIRECTORY
+from src.config import SAMPLE_RATE, COLD_START_THRESHOLD, USERS_DIRECTORY
 from .utils import concatenate_csv_files
 
 
@@ -33,17 +33,15 @@ def _process_history_columns(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Dados com histórico processado.
     """
-    df[USERS_COLS_TO_EXPLODE] = df[USERS_COLS_TO_EXPLODE].apply(
-        lambda col: col.str.split(","))
+    df[USERS_COLS_TO_EXPLODE] = df[USERS_COLS_TO_EXPLODE].apply(lambda col: col.str.split(","))
     df = df.explode(USERS_COLS_TO_EXPLODE)
-    df[USERS_COLS_TO_EXPLODE] = df[USERS_COLS_TO_EXPLODE].apply(
-        lambda col: col.str.strip())
+    df[USERS_COLS_TO_EXPLODE] = df[USERS_COLS_TO_EXPLODE].apply(lambda col: col.str.strip())
     return df
 
 
 def _process_timestamp(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Converte timestamps para datetime e calcula minutos desde a última visita.
+    Converte timestamps para datetime e calcula minutos desde o último acesso.
 
     Args:
         df (pd.DataFrame): Dados dos usuários.
@@ -55,7 +53,8 @@ def _process_timestamp(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values(by=["userId", "timestampHistory"]).reset_index(drop=True)
     df["minutesSinceLastVisit"] = df.groupby("userId")["timestampHistory"].diff()
     df["minutesSinceLastVisit"] = (
-        df["minutesSinceLastVisit"].dt.total_seconds().div(60.0).fillna(0).round())
+        df["minutesSinceLastVisit"].dt.total_seconds().div(60.0).fillna(0).round()
+    )
     return df
 
 
@@ -104,7 +103,7 @@ def _downcast_columns(df: pd.DataFrame) -> pd.DataFrame:
         df (pd.DataFrame): Dados dos usuários.
 
     Returns:
-        pd.DataFrame: Dados com colunas otimizadas.
+        pd.DataFrame: Dados otimizados.
     """
     df["historySize"] = pd.to_numeric(df["historySize"], downcast="integer")
     df["numberOfClicksHistory"] = pd.to_numeric(df["numberOfClicksHistory"], downcast="integer")

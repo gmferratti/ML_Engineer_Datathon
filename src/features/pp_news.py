@@ -6,7 +6,7 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from .utils import concatenate_csv_files
 from .constants import NEWS_COLS_TO_DROP
-from config import logger, NEWS_DIRECTORY
+from src.config import logger, NEWS_DIRECTORY
 
 
 def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
@@ -22,22 +22,21 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     _download_resource("stopwords", ["corpora/stopwords"])
     _download_resource("wordnet", ["corpora/wordnet", "corpora/wordnet.zip"])
     _download_resource("omw-1.4", ["corpora/omw-1.4", "corpora/omw-1.4.zip"])
-    df_news = concatenate_csv_files(NEWS_DIRECTORY)
-    df_news = df_news.rename(columns={"page": "pageId"})
-    df_news = df_news[df_news["pageId"].isin(selected_pageIds)]
+    df = concatenate_csv_files(NEWS_DIRECTORY)
+    df = df.rename(columns={"page": "pageId"})
+    df = df[df["pageId"].isin(selected_pageIds)]
     for col in ["issued", "modified"]:
-        df_news[col] = pd.to_datetime(df_news[col])
-        df_news[f"{col}Date"] = df_news[col].dt.date
-        df_news[f"{col}Time"] = df_news[col].dt.time
-    df_news["urlExtracted"] = df_news["url"].apply(_extract_url_mid_section)
-    df_news["local"] = df_news["urlExtracted"].apply(_extract_location)
-    df_news["localState"] = df_news["local"].str.split("/").str[0]
-    df_news["localRegion"] = df_news["local"].str.split("/").str[1]
-    df_news["theme"] = df_news["urlExtracted"].apply(_extract_theme)
-    df_news["themeMain"] = df_news["theme"].str.split("/").str[0]
-    df_news["themeSub"] = df_news["theme"].str.split("/").str[1]
-    df_news = df_news.drop(columns=NEWS_COLS_TO_DROP)
-    return df_news
+        df[col] = pd.to_datetime(df[col])
+        df[f"{col}Date"] = df[col].dt.date
+        df[f"{col}Time"] = df[col].dt.time
+    df["urlExtracted"] = df["url"].apply(_extract_url_mid_section)
+    df["local"] = df["urlExtracted"].apply(_extract_location)
+    df["localState"] = df["local"].str.split("/").str[0]
+    df["localRegion"] = df["local"].str.split("/").str[1]
+    df["theme"] = df["urlExtracted"].apply(_extract_theme)
+    df["themeMain"] = df["theme"].str.split("/").str[0]
+    df["themeSub"] = df["theme"].str.split("/").str[1]
+    return df.drop(columns=NEWS_COLS_TO_DROP)
 
 
 def _download_resource(resource_name: str, resource_paths: list) -> None:
@@ -106,9 +105,9 @@ def _extract_theme(url_part: str) -> str:
     """
     if not url_part:
         return None
-    location = _extract_location(url_part)
-    if location:
-        theme = url_part.replace(location, "").lstrip("/")
+    loc = _extract_location(url_part)
+    if loc:
+        theme = url_part.replace(loc, "").lstrip("/")
         return theme if theme else None
     return url_part
 

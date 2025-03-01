@@ -1,13 +1,22 @@
 import pandas as pd
 from .constants import (
-    MIX_FEATS_COLS, STATE_COLS, REGION_COLS, THEME_MAIN_COLS,
-    THEME_SUB_COLS, GAP_COLS, FINAL_MIX_FEAT_COLS,
+    MIX_FEATS_COLS,
+    STATE_COLS,
+    REGION_COLS,
+    THEME_MAIN_COLS,
+    THEME_SUB_COLS,
+    GAP_COLS,
+    FINAL_MIX_FEAT_COLS,
 )
 
 
-def generate_suggested_feats(df_mix: pd.DataFrame, state_df: pd.DataFrame,
-                             region_df: pd.DataFrame, tm_df: pd.DataFrame,
-                             ts_df: pd.DataFrame) -> pd.DataFrame:
+def generate_suggested_feats(
+    df_mix: pd.DataFrame,
+    state_df: pd.DataFrame,
+    region_df: pd.DataFrame,
+    tm_df: pd.DataFrame,
+    ts_df: pd.DataFrame,
+) -> pd.DataFrame:
     """
     Gera a tabela final agregando informações de várias dimensões.
 
@@ -61,18 +70,30 @@ def _process_datetime(df_news: pd.DataFrame, df_users: pd.DataFrame):
     """
     df_news["issuedDate"] = pd.to_datetime(df_news["issuedDate"], format="%Y-%m-%d")
     df_users["timestampHistoryDate"] = pd.to_datetime(
-        df_users["timestampHistoryDate"], format="%Y-%m-%d")
+        df_users["timestampHistoryDate"], format="%Y-%m-%d"
+    )
     df_news["issuedTime"] = pd.to_datetime(
-        df_news["issuedTime"], format="%H:%M:%S", errors="coerce").dt.time
+        df_news["issuedTime"], format="%H:%M:%S", errors="coerce"
+    ).dt.time
     df_users["timestampHistoryTime"] = pd.to_datetime(
-        df_users["timestampHistoryTime"], format="%H:%M:%S", errors="coerce").dt.time
+        df_users["timestampHistoryTime"], format="%H:%M:%S", errors="coerce"
+    ).dt.time
     df_news["issuedDatetime"] = df_news["issuedDate"] + df_news["issuedTime"].apply(
-        lambda t: pd.Timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
-        if pd.notnull(t) else pd.Timedelta(0))
-    df_users["timestampHistoryDatetime"] = df_users["timestampHistoryDate"] + \
-        df_users["timestampHistoryTime"].apply(
-            lambda t: pd.Timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
-            if pd.notnull(t) else pd.Timedelta(0))
+        lambda t: (
+            pd.Timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+            if pd.notnull(t)
+            else pd.Timedelta(0)
+        )
+    )
+    df_users["timestampHistoryDatetime"] = df_users["timestampHistoryDate"] + df_users[
+        "timestampHistoryTime"
+    ].apply(
+        lambda t: (
+            pd.Timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+            if pd.notnull(t)
+            else pd.Timedelta(0)
+        )
+    )
     return df_news, df_users
 
 
@@ -144,4 +165,4 @@ def _split_dataframes(df_mix: pd.DataFrame):
     region_df = region_df.drop_duplicates(subset=["userId", "localRegion"])
     tm_df = tm_df.drop_duplicates(subset=["userId", "themeMain"])
     ts_df = ts_df.drop_duplicates(subset=["userId", "themeSub"])
-    return gap_df, state_df, region_df, tm_df, ts_df
+    return df_mix, gap_df, state_df, region_df, tm_df, ts_df

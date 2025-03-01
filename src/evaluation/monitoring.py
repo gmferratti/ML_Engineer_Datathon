@@ -3,7 +3,7 @@ import mlflow
 from src.config import CONFIG
 from src.data.data_loader import get_evaluation_data
 from src.evaluation.utils import evaluate_model
-from src.recomendation_model.mocked_model import MockedRecommender
+from src.recommendation_model.mocked_model import MockedRecommender
 
 
 def main():

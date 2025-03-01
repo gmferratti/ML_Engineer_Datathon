@@ -31,7 +31,7 @@ Para experimentos rápidos, use o script simplificado:
 
 ```python
 from train import train_simple
-from recomendation_model.base_model import LightGBMRanker
+from src.recommendation_model.lgbm_ranker import LightGBMRanker
 
 # Treina um modelo mockado (padrão)
 model = train_simple(model_params={"threshold": 0.5})

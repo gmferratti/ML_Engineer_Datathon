@@ -210,8 +210,7 @@ class S3Storage(BaseStorage):
             List[str]: Lista de arquivos.
         """
         try:
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.s3_bucket, Prefix=path)
+            response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=path)
             if "Contents" not in response:
                 return []
             files = []

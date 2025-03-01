@@ -19,8 +19,9 @@ class Storage(BaseStorage):
         """
         self._storage = create_storage(use_s3=use_s3)
         self.use_s3 = USE_S3 if use_s3 is None else use_s3
-        self.s3_bucket = (get_config("S3_BUCKET", "fiap-mleng-datathon-data-grupo57")
-                          if self.use_s3 else None)
+        self.s3_bucket = (
+            get_config("S3_BUCKET", "fiap-mleng-datathon-data-grupo57") if self.use_s3 else None
+        )
 
     def read_parquet(self, path: str, **kwargs) -> pd.DataFrame:
         """
