@@ -5,8 +5,7 @@ from src.config import logger, DATA_PATH, USE_S3
 from storage.io import Storage
 
 
-def get_client_features(user_id: str,
-                        clients_features_df: pd.DataFrame) -> pd.Series:
+def get_client_features(user_id: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
     """
     Obtém as características de um cliente.
 
@@ -15,9 +14,13 @@ def get_client_features(user_id: str,
         clients_features_df (pd.DataFrame): Dados dos clientes.
 
     Returns:
-        pd.Series: Características do cliente.
+        pd.Series or None: Características do cliente, ou None se não encontrado.
     """
-    return clients_features_df[clients_features_df["userId"] == user_id].iloc[0]
+    df = clients_features_df[clients_features_df["userId"] == user_id]
+    if df.empty:
+        logger.warning("Nenhuma feature encontrada para o usuário: %s", user_id)
+        return None
+    return df.iloc[0]
 
 
 def get_non_viewed_news(userId: str, news_features_df: pd.DataFrame,
@@ -71,7 +74,7 @@ def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
     Carrega dados de avaliação (features + target).
 
     Args:
-        storage (Storage, optional): Instância para I/O. Cria se None.
+        storage (Storage, optional): Instância para I/O.
 
     Returns:
         pd.DataFrame: Dados de avaliação.
@@ -91,10 +94,10 @@ def load_data_for_prediction(storage: Optional[Storage] = None) -> Dict[str, pd.
     Carrega dados para predição (notícias e clientes).
 
     Args:
-        storage (Storage, optional): Instância para I/O. Cria se None.
+        storage (Storage, optional): Instância para I/O.
 
     Returns:
-        Dict[str, pd.DataFrame]: Dados para predição.
+        dict: Dados para predição.
     """
     if storage is None:
         storage = Storage(use_s3=USE_S3)
@@ -111,10 +114,10 @@ def load_model(storage: Optional[Storage] = None):
     Carrega o modelo treinado para predição.
 
     Args:
-        storage (Storage, optional): Instância para I/O. Cria se None.
+        storage (Storage, optional): Instância para I/O.
 
     Returns:
-        object: Modelo treinado ou None em caso de erro.
+        object: Modelo treinado ou None.
     """
     if storage is None:
         storage = Storage(use_s3=USE_S3)
