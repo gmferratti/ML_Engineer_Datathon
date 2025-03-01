@@ -1,5 +1,5 @@
 import os
-from config import logger, FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH
+from config import logger, USE_S3, DATA_PATH, LOCAL_DATA_PATH
 from features.pp_mix import preprocess_mix_feats, generate_suggested_feats
 from features.pp_news import preprocess_news
 from features.pp_target import preprocess_target
@@ -13,9 +13,9 @@ def _get_data_path() -> str:
     Returns:
         str: Caminho dos dados.
     """
-    if FLAG_REMOTE:
-        logger.info("Armazenamento remoto selecionado.")
-        return REMOTE_DATA_PATH
+    if USE_S3:
+        logger.info("Armazenamento remoto (S3) selecionado.")
+        return DATA_PATH
     logger.info("Armazenamento local selecionado.")
     return LOCAL_DATA_PATH
 

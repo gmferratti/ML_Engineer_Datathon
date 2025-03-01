@@ -6,7 +6,7 @@ from typing import List
 import mlflow
 
 from data.data_loader import get_client_features, get_non_viewed_news, get_predicted_news
-from config import FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH, logger, get_config
+from config import FLAG_REMOTE, LOCAL_PATH, REMOTE_DATA_PATH, logger, get_config
 from constants import EXPECTED_COLUMNS
 #TODO: Importar load_mlflow. Evitar redundância.
 
@@ -16,7 +16,7 @@ def prepare_for_prediction() -> str:
     Retorna o caminho do arquivo salvo.
     """
     # Define o caminho base dos dados conforme o ambiente
-    data_path = REMOTE_DATA_PATH if FLAG_REMOTE else LOCAL_DATA_PATH
+    data_path = REMOTE_DATA_PATH if FLAG_REMOTE else LOCAL_PATH
     logger.info("Utilizando armazenamento %s.", "remoto" if FLAG_REMOTE else "local")
     
     # Caminho completo para o arquivo de features completo
@@ -77,7 +77,7 @@ def main():
     logger.info("Iniciando preparação dos dados para predição...")
     full_save_path = prepare_for_prediction()
     
-    data_path = REMOTE_DATA_PATH if FLAG_REMOTE else LOCAL_DATA_PATH
+    data_path = REMOTE_DATA_PATH if FLAG_REMOTE else LOCAL_PATH
     predict_path = os.path.join(data_path, "predict")
     
     # Carrega o dataframe completo de predição

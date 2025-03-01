@@ -66,21 +66,6 @@ def get_predicted_news(
     return top_news["pageId"].tolist()
 
 
-def get_evaluation_data() -> pd.DataFrame:
-    """Pega os dados de avaliação.
-
-    Returns:
-        List[str]: IDs das notícias recomendadas.
-    """
-    df_scores = pd.DataFrame({
-        "pageId": news_features_df["pageId"],
-        "score": scores
-    })
-    filtered = df_scores[df_scores["score"] >= score_threshold]
-    top_news = filtered.sort_values("score", ascending=False).head(n)
-    return top_news["pageId"].tolist()
-
-
 def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
     """
     Carrega dados de avaliação (features + target).

@@ -133,6 +133,7 @@ def configure_mlflow() -> None:
 USE_S3 = get_storage_mode()
 S3_BUCKET = get_config("S3_BUCKET", "fiap-mleng-datathon-data-grupo57")
 DATA_PATH = get_data_path()
+LOCAL_DATA_PATH = "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_05/ML_Engineer_Datathon/data"
 COLD_START_THRESHOLD = get_config("COLD_START_THRESHOLD", 5)
 SAMPLE_RATE = get_config("SAMPLE_RATE", 0.10)
 NEWS_DIRECTORY = get_config("NEWS_DIRECTORY", "challenge-webmedia-e-globo-2023/itens/itens")
