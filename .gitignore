@@ -179,3 +179,7 @@ __pycache__/
 # Variáveis de ambiente locais adicionais
 .envrc
 .direnv
+dump_files.sh
+
+# UV
+uv.lock

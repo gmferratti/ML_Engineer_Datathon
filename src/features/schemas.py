@@ -42,10 +42,10 @@ def get_model_signature():
 
 def create_mock_input_example():
     """
-    Exemplo simples com estrutura usada em produção.
-    
-    Este exemplo mantém o formato simplificado original, com features fictícias:
-      - userId, pageId, user_feat1, user_feat2, news_feat1, news_feat2.
+    Cria um exemplo de input para o modelo.
+
+    Returns:
+        pd.DataFrame: Exemplo com features fictícias.
     """
     return pd.DataFrame(
         [

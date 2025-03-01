@@ -9,7 +9,7 @@ class BaseRecommender(ABC):
     def __init__(self, params=None, num_boost_round=100):
         """
         Inicializa o modelo com parâmetros padrão ou personalizados para ranking.
-        
+
         Args:
             params (dict, opcional): Parâmetros para o LightGBM. Caso não seja fornecido,
                                      utiliza um conjunto padrão voltado para ranking.
@@ -17,33 +17,38 @@ class BaseRecommender(ABC):
         """
         # Define os parâmetros padrão para ranking, incluindo label_gain para scores de 0 a 100
         default_params = {
-            'objective': 'lambdarank',   # Usando objetivo de ranking (LambdaRank)
-            'metric': 'ndcg',            # Métrica típica para avaliar ranking
-            'learning_rate': 0.05,
-            'num_leaves': 39,
-            'verbose': -1,
-            'label_gain': [2**i - 1 for i in range(101)]  # Vetor de ganho para rótulos de 0 a 100
+            "objective": "lambdarank",  # Usando objetivo de ranking (LambdaRank)
+            "metric": "ndcg",  # Métrica típica para avaliar ranking
+            "learning_rate": 0.05,
+            "num_leaves": 39,
+            "verbose": -1,
+            "label_gain": [
+                2**i - 1 for i in range(101)
+            ],  # Vetor de ganho para rótulos de 0 a 100
         }
-        
+
         # Se o usuário passar parâmetros personalizados, verifica se label_gain não está definido
         if params is not None:
-            if params.get('objective', default_params['objective']) == 'lambdarank' and 'label_gain' not in params:
-                params['label_gain'] = [2**i - 1 for i in range(101)]
+            if (
+                params.get("objective", default_params["objective"]) == "lambdarank"
+                and "label_gain" not in params
+            ):
+                params["label_gain"] = [2**i - 1 for i in range(101)]
             self.params = params
         else:
             self.params = default_params
-        
+
         self.num_boost_round = num_boost_round
         self.model = None
 
     @abstractmethod
     def predict(self, model_input):
         """
-        Realiza a predição. 
+        Realiza a predição.
         Este método é abstrato aqui, mas vamos ilustrar abaixo como pode ser implementado.
 
         Args:
-            model_input (dict): Dicionário que deve conter as chaves 
+            model_input (dict): Dicionário que deve conter as chaves
                                 'client_features' e 'news_features'.
         """
         pass
@@ -52,7 +57,7 @@ class BaseRecommender(ABC):
     def train(self, X, y):
         """
         Realiza o treinamento do modelo.
-        Método abstrato para ser implementado. 
+        Método abstrato para ser implementado.
         """
         pass
 
@@ -76,7 +81,7 @@ class LightGBMRanker(BaseRecommender):
         Treina o modelo LightGBM em modo de ranking (LambdaRank).
 
         Args:
-            X (array-like): Features de todos os pares (usuário-notícia), 
+            X (array-like): Features de todos os pares (usuário-notícia),
                             por exemplo [n_amostras x n_features].
             y (array-like): Alvo (score ou relevância) de cada par (usuário-notícia).
             group (list, array ou DataFrame/Series, opcional): Quantidade de amostras 
@@ -103,13 +108,9 @@ class LightGBMRanker(BaseRecommender):
 
         # Cria Dataset para ranking, informando os grupos
         train_data = lgb.Dataset(X, label=y, group=group)
-        
+
         # Treina o modelo com os parâmetros definidos
-        self.model = lgb.train(
-            self.params,
-            train_data,
-            num_boost_round=self.num_boost_round
-        )
+        self.model = lgb.train(self.params, train_data, num_boost_round=self.num_boost_round)
 
     def predict(self, model_input):
         """
@@ -125,23 +126,25 @@ class LightGBMRanker(BaseRecommender):
             model_input (dict ou pd.DataFrame): Dados de entrada.
         
         Returns:
-            np.ndarray: Array com os scores preditos.
+            np.ndarray: Array com os scores preditos (quanto maior o score,
+                        maior a relevância/rank).
         """
-        if isinstance(model_input, pd.DataFrame):
-            # Nesse novo formato, todas as features já estão no DataFrame
-            X = model_input.values
-        elif isinstance(model_input, dict):
-            # Se for dicionário, tenta usar as chaves antigas
-            client_features = model_input.get('client_features')
-            news_features = model_input.get('news_features')
-            if client_features is None or news_features is None:
-                raise ValueError("O dicionário 'model_input' deve conter as chaves 'client_features' e 'news_features'.")
-            X = np.concatenate([client_features, news_features], axis=1)
-        else:
-            raise ValueError("Formato de input não suportado. Use um DataFrame ou dicionário com as chaves esperadas.")
+        client_features = model_input.get("client_features")
+        news_features = model_input.get("news_features")
+
+        if client_features is None or news_features is None:
+            raise ValueError(
+                "O dicionário 'model_input' deve conter as chaves "
+                "'client_features' e 'news_features'."
+            )
+
+        # Combina as features do usuário e da notícia
+        X = np.concatenate([client_features, news_features], axis=1)
 
         if self.model is None:
-            raise ValueError("O modelo ainda não foi treinado. Execute train() antes de predict().")
+            raise ValueError(
+                "O modelo ainda não foi treinado. Execute train() antes de predict()."
+            )
 
         scores = self.model.predict(X)
         return scores

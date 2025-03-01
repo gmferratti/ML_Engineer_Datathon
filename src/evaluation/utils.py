@@ -1,17 +1,16 @@
 from typing import Dict
-from constants import CLIENT_FEATURES, NEWS_FEATURES
+from src.features.constants import CLIENT_FEATURES, NEWS_FEATURES
 import pandas as pd
 import numpy as np
 from recomendation_model.base_model import BaseRecommender
 from sklearn.metrics import ndcg_score
 
 def evaluate_model(
-    model: BaseRecommender, 
-    evaluation_data: pd.DataFrame, 
-    k_ndcg: int = 10) -> Dict:
+    model: BaseRecommender, evaluation_data: pd.DataFrame, k_ndcg: int = 10
+) -> Dict:
     """
-    Avalia o modelo de recomendação usando NDCG@k, 
-    considerando que evaluation_data possui colunas de features 
+    Avalia o modelo de recomendação usando NDCG@k,
+    considerando que evaluation_data possui colunas de features
     e uma coluna 'TARGET' com a relevância.
 
     Args:
@@ -25,7 +24,7 @@ def evaluate_model(
     # Separar X (features) e y (target)
     X = evaluation_data.drop(columns=["TARGET"])
     y_true = evaluation_data["TARGET"].values
-    
+
     # Converter para numpy arrays
     client_feats = X[CLIENT_FEATURES].values
     news_feats = X[NEWS_FEATURES].values

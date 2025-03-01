@@ -8,7 +8,7 @@ import mlflow
 from data.data_loader import get_client_features, get_non_viewed_news, get_predicted_news
 from config import FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH, logger, get_config
 from constants import EXPECTED_COLUMNS
-
+#TODO: Importar load_mlflow. Evitar redundância.
 
 def prepare_for_prediction() -> str:
     """
@@ -36,6 +36,7 @@ def prepare_for_prediction() -> str:
     logger.info("Arquivo salvo: %s", full_save_path)
     
     return full_save_path
+
 
 
 def predict_for_userId(
@@ -66,29 +67,9 @@ def predict_for_userId(
     
     # Calcula os scores usando o modelo
     scores = model.predict(model_input)
-    
+
     # Retorna as notícias recomendadas aplicando o filtro de score
     return get_predicted_news(scores, non_viewed_news, n=n, score_threshold=score_threshold)
-
-
-
-def load_mlflow_model():
-    """
-    Carrega o modelo treinado via MLflow a partir do servidor configurado.
-    As configurações (MODEL_NAME, MODEL_ALIAS e MLFLOW_TRACKING_URI) são lidas via get_config.
-    """
-    model_name = get_config("MODEL_NAME", "news-recommender-dev")
-    model_alias = get_config("MODEL_ALIAS", "champion")
-    mlflow_tracking_uri = get_config("MLFLOW_TRACKING_URI", "http://localhost:5001")
-    mlflow.set_tracking_uri(mlflow_tracking_uri)
-    model_uri = f"models:/{model_name}@{model_alias}"
-    try:
-        model = mlflow.pyfunc.load_model(model_uri)
-        logger.info(f"Modelo carregado: {model_name}@{model_alias}")
-        return model
-    except Exception as e:
-        logger.error(f"Erro ao carregar modelo: {e}")
-        sys.exit(1)
 
 
 def main():
