@@ -17,7 +17,7 @@ from data.data_loader import load_data_for_prediction, load_model
 # Configuração de logging
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s"
 )
 logger = logging.getLogger("api")
 

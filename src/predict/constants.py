@@ -1,16 +1,5 @@
-CLIENT_FEATURES = [
-    "userTypeFreq",
-    "isWeekend",
-    "dayPeriodFreq",
-]
-
-NEWS_FEATURES = [
-    "relLocalState",
-    "relLocalRegion",
-    "relThemeMain",
-    "relThemeSub",
-    "localStateFreq",
-    "localRegionFreq",
-    "themeMainFreq",
-    "themeSubFreq",
+EXPECTED_COLUMNS = [
+    'isWeekend', 'relLocalState', 'relLocalRegion', 'relThemeMain',
+    'relThemeSub', 'userTypeFreq', 'dayPeriodFreq', 'localStateFreq',
+    'localRegionFreq', 'themeMainFreq', 'themeSubFreq'
 ]

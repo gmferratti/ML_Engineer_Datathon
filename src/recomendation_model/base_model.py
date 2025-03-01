@@ -1,8 +1,9 @@
 # src/recomendation_model/base_model.py
 from abc import ABC, abstractmethod
 import lightgbm as lgb
+import pandas as pd
 import numpy as np
-
+import os
 
 class BaseRecommender(ABC):
     def __init__(self, params=None, num_boost_round=100):
@@ -65,16 +66,17 @@ class LightGBMRanker(BaseRecommender):
     """
     Exemplo concreto de implementação de um modelo de ranking no LightGBM,
     utilizando o objetivo 'lambdarank' para aprendizado de ranking.
+    
+    Esta classe aceita parâmetros extras via **kwargs, permitindo a utilização
+    de um 'threshold' para ajustar os scores preditos.
     """
-
-    def __init__(self, params=None, num_boost_round=100):
-        # Caso seja passado um dicionário de parâmetros que contenha 'num_class',
-        # removemos para evitar conflitos com o objetivo de ranking.
+    def __init__(self, params=None, num_boost_round=100, **kwargs):
+        self.threshold = kwargs.pop('threshold', None)
         if params is not None and "num_class" in params:
             del params["num_class"]
         super().__init__(params=params, num_boost_round=num_boost_round)
 
-    def train(self, X, y, group):
+    def train(self, X, y, group=pd.read_parquet("C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_05/ML_Engineer_Datathon/data/train/group_train.parquet")):
         """
         Treina o modelo LightGBM em modo de ranking (LambdaRank).
 
@@ -82,15 +84,27 @@ class LightGBMRanker(BaseRecommender):
             X (array-like): Features de todos os pares (usuário-notícia),
                             por exemplo [n_amostras x n_features].
             y (array-like): Alvo (score ou relevância) de cada par (usuário-notícia).
-            group (list ou array): Quantidade de amostras (instâncias) para cada usuário
-                                   ou grupo. A soma de todos os elementos de 'group'
-                                   deve ser igual ao número total de linhas em X.
+            group (list, array ou DataFrame/Series, opcional): Quantidade de amostras 
+                            (instâncias) para cada usuário ou grupo. Se não for informado, 
+                            assume que todas as instâncias pertencem a um único grupo.
         """
-        # Valida se a soma dos grupos bate com o número total de amostras
-        if np.sum(group) != X.shape[0]:
-            raise ValueError(
-                "A soma dos valores em 'group' deve ser igual ao número de amostras em X."
-            )
+        # Se group não for informado, assume que todos os samples pertencem a um único grupo
+        if group is None:
+            group = [X.shape[0]]
+        else:
+            # Se o group for um DataFrame ou Series, converte para um array NumPy
+            if isinstance(group, pd.DataFrame):
+                # Se houver uma coluna chamada "groupCount", a utiliza; caso contrário, pega a primeira coluna
+                if "groupCount" in group.columns:
+                    group = group["groupCount"].to_numpy()
+                else:
+                    group = group.iloc[:, 0].to_numpy()
+            elif isinstance(group, pd.Series):
+                group = group.to_numpy()
+
+            # Agora que group é um array NumPy, a soma é realizada sem ambiguidade
+            if np.sum(group) != X.shape[0]:
+                raise ValueError("A soma dos valores em 'group' deve ser igual ao número de amostras em X.")
 
         # Cria Dataset para ranking, informando os grupos
         train_data = lgb.Dataset(X, label=y, group=group)
@@ -101,13 +115,16 @@ class LightGBMRanker(BaseRecommender):
     def predict(self, model_input):
         """
         Realiza a predição (score) para ranqueamento.
-        Recebe dicionário com client_features e news_features, concatena e roda predict.
-
+        
+        Suporta os seguintes formatos de input:
+        - Se model_input for um DataFrame, assume-se que ele contém todas as features
+            na ordem definida na assinatura (por exemplo, 'isWeekend', 'relLocalState', etc.)
+        - Se model_input for um dicionário, verifica se contém as chaves
+            'client_features' e 'news_features' (formato antigo) e as concatena.
+        
         Args:
-            model_input (dict): Deve conter:
-                - 'client_features': array-like (n_samples x n_client_feats)
-                - 'news_features': array-like (n_samples x n_news_feats)
-
+            model_input (dict ou pd.DataFrame): Dados de entrada.
+        
         Returns:
             np.ndarray: Array com os scores preditos (quanto maior o score,
                         maior a relevância/rank).
@@ -129,7 +146,5 @@ class LightGBMRanker(BaseRecommender):
                 "O modelo ainda não foi treinado. Execute train() antes de predict()."
             )
 
-        # Realiza a predição de scores (valores de relevância)
         scores = self.model.predict(X)
-
         return scores

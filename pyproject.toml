@@ -27,6 +27,7 @@ dependencies = [
     "lightgbm>=4.6.0",
     "category-encoders>=2.6.4",
     "nltk==3.9.1"
+    "notebook>=7.3.2",
 ]
 
 [project.optional-dependencies]

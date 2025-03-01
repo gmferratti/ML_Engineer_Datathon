@@ -3,6 +3,7 @@
 PYTHON = python3
 LINTING_PATHS = src/ tests/
 MLFLOW_PORT ?= 5001
+LOCAL_HOST = 127.0.0.1 # ou 0.0.0.0
 
 #######################################################################################################################################################
 ################################################################### SETUP & CONFIG ####################################################################
@@ -80,7 +81,7 @@ setup-mlflow:
 	[ -f mlflow.db ] || (touch mlflow.db && chmod 666 mlflow.db)
 
 mlflow-start: setup-mlflow
-	mlflow server --host 0.0.0.0 --port $(MLFLOW_PORT) 
+	mlflow server --host $(LOCAL_HOST) --port $(MLFLOW_PORT) 
 
 
 
@@ -95,7 +96,8 @@ pp_features:
 # 	uv run src/train/train.py
 
 train:
-	PYTHONPATH="." uv run src/train/train.py   
+	# PYTHONPATH="."
+	uv run src/train/train.py   
   
 predict:
 	uv run src/predict/predict.py
@@ -108,3 +110,10 @@ local_api:
 
 docker_api:
 	docker-compose up --build
+
+# IMPORTANTE: Para rodar estes comandos no Windows: 
+
+# 1. instale o MakeFile usando choco install make no VSCode (modo Admin) 
+# 2. Garanta que você esteja usando o GitBash com PYTHONPATH configurado corretamente.
+# 3. Caso esteja salvando as informações em algum Drive, evite usar o hard link do UV
+# Para isso, configure: export UV_LINK_MODE=copy. Irá ficar mais lento, mas pelo menos

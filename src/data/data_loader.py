@@ -40,8 +40,12 @@ def get_non_viewed_news(userId: str, news_features_df: pd.DataFrame,
     return unread[["userId", "pageId"]].reset_index(drop=True)
 
 
-def get_predicted_news(scores: List[float], news_features_df: pd.DataFrame,
-                       n: int = 5, score_threshold: float = 0.3) -> List[str]:
+def get_predicted_news(
+    scores: List[float],
+    news_features_df: pd.DataFrame,
+    n: int = 5,
+    score_threshold: int = 30,
+) -> List[str]:
     """
     Retorna os IDs das notícias recomendadas com base nos scores.
 
@@ -50,6 +54,20 @@ def get_predicted_news(scores: List[float], news_features_df: pd.DataFrame,
         news_features_df (pd.DataFrame): Dados das notícias.
         n (int, optional): Máximo de notícias. Default: 5.
         score_threshold (float, optional): Score mínimo. Default: 0.3.
+    Returns:
+        List[str]: IDs das notícias recomendadas.
+    """
+    df_scores = pd.DataFrame({
+        "pageId": news_features_df["pageId"],
+        "score": scores
+    })
+    filtered = df_scores[df_scores["score"] >= score_threshold]
+    top_news = filtered.sort_values("score", ascending=False).head(n)
+    return top_news["pageId"].tolist()
+
+
+def get_evaluation_data() -> pd.DataFrame:
+    """Pega os dados de avaliação.
 
     Returns:
         List[str]: IDs das notícias recomendadas.
