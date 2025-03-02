@@ -13,3 +13,5 @@ NEWS_FEATURES_COLUMNS = [
     'relLocalState', 'relLocalRegion', 'relThemeMain', 'relThemeSub',
     'localStateFreq', 'localRegionFreq', 'themeMainFreq', 'themeSubFreq'
 ]
+
+METADATA_COLS = ["pageId", "url", "title", "issuedDate", "issuedTime"]

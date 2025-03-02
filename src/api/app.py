@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from contextlib import asynccontextmanager  # ✅ Importação correta
 
 import mlflow
@@ -81,9 +81,11 @@ class PredictRequest(BaseModel):
 
 class NewsItem(BaseModel):
     news_id: str = Field(..., description="ID da notícia")
-    score: float = Field(..., description="Score de recomendação")
+    score: Union[float, str] = Field(..., description="Score de recomendação")
     title: Optional[str] = Field(None, description="Título da notícia (se disponível)")
     url: Optional[str] = Field(None, description="URL da notícia (se disponível)")
+    issuedDate: Optional[str] = Field(None, description="Data de emissão da notícia")
+    issuedTime: Optional[str] = Field(None, description="Hora de emissão da notícia")
 
 
 class PredictResponse(BaseModel):
@@ -195,19 +197,22 @@ def get_model_version(model=Depends(get_model)) -> str:
             version = model.metadata.get("mlflow.runName", None)
             if version:
                 return version
-        # Se não estiver disponível, consulta o MLflow Registry
+
+        # Se não estiver disponível, consulta o MLflow Registry utilizando alias
         model_name = get_config("MODEL_NAME", "news-recommender")
         model_alias = get_config("MODEL_ALIAS", "champion")
         client = MlflowClient()
-        # Consulta a última versão registrada para o modelo e alias (champion)
-        latest_versions = client.get_latest_versions(model_name)
-        if latest_versions:
-            # Se houver múltiplas, pega a última (ou ajuste conforme sua lógica)
-            return latest_versions[-1].version
+
+        # Busca a versão registrada utilizando o alias (por exemplo, "champion")
+        model_version = client.get_model_version_by_alias(model_name, model_alias)
+        if model_version:
+            return model_version.version
+
         return "unknown"
     except Exception as e:
         logger.error(f"Erro ao obter versão do modelo: {e}")
         return "unknown"
+
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
@@ -234,8 +239,7 @@ def predict(request: PredictRequest):
         news_features_df = prediction_data["news_features"]
         clients_features_df = prediction_data["clients_features"]
 
-        # Obtém a lista de recomendações (cada item é um dicionário com 'pageId' e 'score')
-        rec_entries = predict_for_userId(
+        rec_entries, cold_start_flag = predict_for_userId(
             userId=request.userId,
             news_features_df=news_features_df,
             clients_features_df=clients_features_df,
@@ -244,27 +248,32 @@ def predict(request: PredictRequest):
             score_threshold=request.min_score,
         )
 
-        # Transforma cada item em um objeto NewsItem
+        # Transforma cada recomendação em objeto NewsItem (já contém issuedDate e issuedTime)
         rec_items = []
-        for entry in rec_entries:
-            news_id = entry.get("pageId")
-            score = entry.get("score", 0)
-            # Busca a notícia pelo ID para recuperar título e URL
-            row = news_features_df[news_features_df["pageId"] == news_id]
-            if not row.empty:
-                title = row.iloc[0].get("title")
-                url = row.iloc[0].get("url")
-            else:
-                title = None
-                url = None
-            rec_items.append(NewsItem(news_id=news_id, score=round(score, 2), title=title, url=url))
+        for rec in rec_entries:
+            news_id = rec.get("pageId")
+            score_value = rec.get("score", 0)
+            try:
+                num_score = float(score_value)
+                rounded_score = round(num_score, 2)
+            except (ValueError, TypeError):
+                rounded_score = score_value
+
+            rec_items.append(NewsItem(
+                news_id=news_id,
+                score=rounded_score,
+                title=rec.get("title"),
+                url=rec.get("url"),
+                issuedDate=rec.get("issuedDate"),
+                issuedTime=rec.get("issuedTime")
+            ))
 
         processing_time_ms = (time.time() - start_time) * 1000
         return PredictResponse(
             userId=request.userId,
             recommendations=rec_items,
             model_version=get_model_version(model),
-            cold_start=False,
+            cold_start=cold_start_flag,
             processing_time_ms=processing_time_ms,
         )
     except Exception as e:

@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Dict, Optional, Any
 from src.config import logger, DATA_PATH, USE_S3
 from storage.io import Storage
-from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS
+from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS, METADATA_COLS
 
 def get_client_features(userId: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
     """
@@ -122,7 +122,7 @@ def load_data_for_prediction(storage: Optional[Storage] = None,
 
     if include_metadata:
         try:
-            news_metadata = pd.read_parquet("data/features/news_feats.parquet")[["pageId", "url", "title"]]
+            news_metadata = pd.read_parquet("data/features/news_feats.parquet")[METADATA_COLS]
             # Converte também os pageId dos metadados
             news_metadata["pageId"] = news_metadata["pageId"].astype(str)
             logger.info("🔍 [Data Loader] Metadados de notícias carregados com sucesso.")
