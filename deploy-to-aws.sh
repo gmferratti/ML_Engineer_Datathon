@@ -180,6 +180,16 @@ chmod +x setup_and_run.sh
 echo -e "${YELLOW}Enviando arquivos para a instância...${NC}"
 scp -o StrictHostKeyChecking=no -i ~/.ssh/labsuser.pem docker-compose.yml setup_and_run.sh ubuntu@$PUBLIC_IP:~/news-recommender/
 
+echo -e "${YELLOW}Copiando credenciais AWS...${NC}"
+# Criar diretório .aws na instância remota
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/labsuser.pem ubuntu@$PUBLIC_IP "mkdir -p ~/.aws"
+
+# Copiar o arquivo de credenciais
+scp -o StrictHostKeyChecking=no -i ~/.ssh/labsuser.pem ~/.aws/credentials ubuntu@$PUBLIC_IP:~/.aws/credentials
+
+# Definir permissões corretas para o arquivo de credenciais
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/labsuser.pem ubuntu@$PUBLIC_IP "chmod 600 ~/.aws/credentials"
+
 # Executar o script de instalação
 echo -e "${YELLOW}Executando script de instalação...${NC}"
 ssh -o StrictHostKeyChecking=no -i ~/.ssh/labsuser.pem ubuntu@$PUBLIC_IP "cd ~/news-recommender && chmod +x setup_and_run.sh && ./setup_and_run.sh"

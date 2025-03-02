@@ -1,133 +1,75 @@
-# Deploy do Sistema de Recomendação na AWS App Runner
+# Deploy do Sistema de Recomendação na AWS
 
-Este guia simplificado mostra como fazer o deploy do sistema de recomendação usando AWS App Runner - a maneira mais simples e direta de colocar containers na AWS sem precisar configurar infraestrutura complexa.
+## Abordagens de Deploy
 
-## Pré-requisitos
+Durante o desenvolvimento deste projeto, exploramos duas estratégias de deploy na AWS:
 
-1. Uma conta AWS
-2. AWS CLI instalado e configurado em sua máquina
-3. Docker instalado em sua máquina
-4. Correção do erro "No module named 'configs'" (instruções abaixo)
+1. **Deploy via Amazon ECR e AWS App Runner** (Abordagem Inicial)
+2. **Deploy Direto em EC2** (Solução Implementada)
 
-Existe um script **deploy-to-aws.sh** na raiz do projeto que automatiza as etapas abaixo.
+## Limitações do Ambiente de Laboratório AWS
 
-## Etapa 1: Obter o ID da sua conta AWS
+No ambiente de laboratório fornecido, encontramos restrições significativas que impactaram nossa estratégia de deploy:
 
-Existem várias maneiras de obter seu AWS Account ID:
+- Acesso limitado aos serviços de Container Registry (ECR)
+- Permissões restritas para criação de recursos de container
+- Dificuldades na configuração de serviços gerenciados como App Runner
 
-### Opção 1: Usando o AWS CLI
+## Abordagem 1: ECR e App Runner (Planejamento Original)
+
+Esta abordagem foi inicialmente planejada como a solução ideal para deploy de containers na AWS, aproveitando os benefícios do AWS App Runner.
+
+### Etapas Planejadas
+1. Obter o ID da conta AWS
+2. Criar repositório ECR
+3. Autenticar e enviar imagem Docker
+4. Configurar App Runner
+5. Definir variáveis de ambiente
+6. Realizar deploy do serviço
+
+### Exemplo de Comandos
 ```bash
-aws sts get-caller-identity --query Account --output text
-```
-
-### Opção 2: No Console AWS
-1. Faça login no console AWS
-2. Clique no nome do seu usuário no canto superior direito
-3. Seu Account ID aparecerá no dropdown
-
-## Etapa 2: Criar um repositório ECR e enviar a imagem Docker
-
-```bash
-# Substitua 123456789012 pelo seu Account ID
-export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export AWS_REGION=us-east-1
-
 # Criar repositório ECR
 aws ecr create-repository --repository-name news-recommender-api
 
-# Autenticar no ECR
-aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-
-# Construir a imagem Docker
+# Autenticar e enviar imagem
+aws ecr get-login-password | docker login
 docker build -t news-recommender-api .
-
-# Tagear a imagem para o ECR
-docker tag news-recommender-api:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/news-recommender-api:latest
-
-# Enviar a imagem para o ECR
-docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/news-recommender-api:latest
+docker push $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/news-recommender-api:latest
 ```
 
-## Etapa 3: Deploy usando AWS App Runner pelo Console
+## Abordagem 2: Deploy Direto em EC2 (Solução Implementada)
 
-1. Acesse o [Console AWS App Runner](https://console.aws.amazon.com/apprunner)
-2. Clique em **Create service**
+Devido às limitações do ambiente de laboratório, migramos para um método de deploy direto em instância EC2.
 
-### Configurar fonte
-1. Em **Source**, selecione **Container registry**
-2. Em **Provider**, selecione **Amazon ECR**
-3. Em **Container image URI**, selecione a imagem que acabou de enviar:
-   `$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/news-recommender-api:latest`
-4. Em **Deployment settings**, selecione **Manual**
-5. Clique em **Next**
+### Benefícios desta Abordagem
+- Menor complexidade de configuração
+- Maior flexibilidade no ambiente de laboratório
+- Controle direto sobre a infraestrutura
+- Facilidade de depuração e monitoramento
 
-### Configurar serviço
-1. Dê um nome ao serviço: `news-recommender-api`
-2. Em **Port**, insira `8000`
-3. Em **CPU**, selecione `1 vCPU`
-4. Em **Memory**, selecione `2 GB`
-5. Em **Environment variables**, adicione:
-   - `ENV`: `prod`
-   - `MLFLOW_TRACKING_URI`: URL do seu MLflow remoto
-   - `AWS_ACCESS_KEY_ID`: Sua chave de acesso AWS
-   - `AWS_SECRET_ACCESS_KEY`: Sua chave secreta AWS
-   - `AWS_DEFAULT_REGION`: Região AWS (ex: us-east-1)
-6. Clique em **Next**
+### Script de Deploy
 
-### Revisar e criar
-1. Revise as configurações
-2. Clique em **Create & deploy**
+O script `deploy-to-aws.sh` automatiza o processo de:
+- Criação de instância EC2
+- Configuração do ambiente
+- Instalação do Docker
+- Deploy do container
 
-O App Runner começará a provisionar seu serviço, o que pode levar alguns minutos. Quando estiver pronto, você terá um endpoint HTTPS para acessar a API.
-
-## Etapa 4: Testar a API
-
-Depois que o serviço estiver em execução, você pode testar a API usando curl ou um navegador:
+### Exemplo de Uso
 
 ```bash
-# Verificar se a API está funcionando
-curl https://[seu-app-runner-url]/health
+# Preparar o script
+chmod +x deploy-to-aws.sh
 
-# Fazer uma requisição de recomendação
-curl -X POST https://[seu-app-runner-url]/predict \
-  -H "Content-Type: application/json" \
-  -d '{"userId": "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297", "max_results": 5}'
+# Executar o deploy
+./deploy-to-aws.sh
 ```
 
-## Dicas e Solução de Problemas
+## Recomendações para Ambientes Reais
 
-### Permissões para ECR
-Se o App Runner não conseguir extrair a imagem, verifique se você configurou corretamente as permissões de acesso ao ECR:
-
-1. No console ECR, selecione o repositório que você criou
-2. Vá para a guia **Permissions**
-3. Adicione uma política que conceda acesso ao serviço App Runner para extrair imagens
-
-### Logs
-Para verificar os logs em caso de problemas:
-
-1. No console App Runner, selecione seu serviço
-2. Clique na guia **Logs**
-3. Você verá logs de construção e implantação, bem como logs do aplicativo
-
-### Atualização da Aplicação
-Para atualizar sua aplicação:
-
-1. Faça alterações em seu código
-2. Reconstrua e envie a imagem Docker para o ECR
-3. No console App Runner, selecione seu serviço e clique em **Deploy**
-
-### Escalonamento
-App Runner escala automaticamente com base na carga. Você pode configurar:
-
-1. No console App Runner, selecione seu serviço
-2. Clique na guia **Configuration**
-3. Em **Auto scaling**, defina:
-   - **Min size**: 1 (mínimo de instâncias sempre rodando)
-   - **Max size**: 5 (máximo para escalar durante carga alta)
-
-### Monitoramento
-O App Runner integra-se automaticamente ao CloudWatch para métricas e logs:
-
-1. No console App Runner, selecione seu serviço
-2. Clique na guia **Metrics** para ver o desempenho
+Em um ambiente de produção com acesso completo, recomendamos:
+- Utilizar serviços gerenciados como App Runner ou ECS
+- Implementar infraestrutura como código (IaC)
+- Configurar pipelines de CI/CD
+- Usar serviços como Amazon SageMaker
