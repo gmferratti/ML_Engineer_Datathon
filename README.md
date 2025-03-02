@@ -134,22 +134,39 @@ Após testes e validação, o sistema é empacotado com Docker e passa por um ri
 ## Estrutura do Projeto
 
 A organização do projeto é a seguinte:
+
 ```
 .
-├── Dockerfile              # Configuração do container
-├── docker-compose.yml      # Orquestração dos serviços
-├── run-local.sh            # Script de inicialização
-├── DEPLOY_AWS.md           # Instruções de deploy na AWS
-├── pyproject.toml          # Dependências do projeto
-├── configs/                # Configurações de ambiente
-└── src/                    # Código-fonte
-    ├── api/                # API de recomendação
-    ├── data/               # Manipulação e pré-processamento
-    ├── evaluation/         # Avaliação e métricas
-    ├── features/           # Feature engineering
-    ├── predict/            # Pipeline de predição
+├── Dockerfile                   # Configuração do container
+├── docker-compose.yml           # Orquestração dos serviços
+├── Makefile                     # Comandos principais do projeto
+├── README.md                    # Documentação principal
+├── LICENSE                      # Licença do projeto
+├── pyproject.toml               # Dependências do projeto
+├── requirements.txt             # Requisitos do projeto
+├── deploy-to-aws.sh             # Script para deploy na AWS
+├── run-local.sh                 # Script de inicialização
+├── mlflow.db                    # Banco de dados do MLflow
+├── mlartifacts/                # Artefatos do MLflow
+├── mlruns/                     # Registro de execuções do MLflow
+├── uv.lock                      # Arquivo lock de requirements (UV)
+├── docs/                       # Documentações específicas do projeto
+├── notebooks/                  # Notebooks de análise e experimentos
+├── tests/                      # Testes do projeto
+├── data/                       # Dados brutos ou processados
+├── configs/                    # Configurações de ambiente
+└── src/                        # Código-fonte
+    ├── __init__.py
+    ├── config.py              # Configurações globais
+    ├── api/                  # API de recomendação
+    ├── data/                 # Manipulação e pré-processamento
+    ├── evaluation/           # Avaliação e métricas
+    ├── features/             # Feature engineering
+    ├── predict/              # Pipeline de predição
     ├── recommendation_model/ # Modelos de recomendação
-    └── train/              # Pipeline de treinamento
+    ├── train/                # Pipeline de treinamento
+    ├── storage/              # Abstração de armazenamento
+
 ```
 
 ## Endpoints e Monitoramento
