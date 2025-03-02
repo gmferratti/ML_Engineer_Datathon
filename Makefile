@@ -89,17 +89,19 @@ mlflow-start: setup-mlflow
 ################################################################### PROJECT RUNNING ###################################################################
 #######################################################################################################################################################
 
+.PHONY: pp_features train predict run
+
 pp_features:
 	PYTHONPATH="." uv run src/features/pipeline.py
 
 train:
-	PYTHONPATH="." uv run src/train/pipeline.py   
-  
-predict:
-	uv run src/predict/predict.py
+	PYTHONPATH="." uv run src/train/pipeline.py
 
-run_all:
-	uv run src/features/pipeline.py && uv run src/train/pipeline.py
+predict:
+	PYTHONPATH="." uv run src/predict/pipeline.py
+
+run: pp_features train predict
+
 
 local_api:
 	uv run src/api/app.py
