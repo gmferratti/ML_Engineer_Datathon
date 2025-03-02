@@ -1,7 +1,6 @@
 import os
 import logging
 import colorama
-from importlib import resources
 from typing import Any, Dict, Tuple
 
 import mlflow
@@ -43,18 +42,43 @@ def load_config() -> Tuple[str, Dict[str, Any]]:
     """
     Carrega a configuração com base na variável de ambiente 'ENV'.
 
+    Nova versão que lê os arquivos de configuração diretamente do sistema de arquivos
+    em vez de usar importlib.resources.
+
     Returns:
         tuple: (ambiente, configuração)
     """
     env = os.getenv("ENV", "dev")
     logger.info("Ambiente: %s", env)
-    config_package = "configs"
-    config_file = f"{env}.yaml"
-    try:
-        with resources.open_text(config_package, config_file) as file:
-            config = yaml.safe_load(file)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Config '{config_file}' não encontrada em '{config_package}'.")
+
+    # Procura por arquivos de configuração em vários locais possíveis
+    config_paths = [
+        os.path.join(os.getcwd(), "src", "configs", f"{env}.yaml"),  # ./src/configs/env.yaml
+        os.path.join(
+            os.path.dirname(__file__), "configs", f"{env}.yaml"
+        ),  # ./src/configs/env.yaml
+        os.path.join(os.getcwd(), "configs", f"{env}.yaml"),  # ./configs/env.yaml (fallback)
+        # /app/src/configs/env.yaml (no container)
+        os.path.join("/app", "src", "configs", f"{env}.yaml"),
+        # /app/configs/env.yaml (fallback no container)
+        os.path.join("/app", "configs", f"{env}.yaml"),
+    ]
+
+    config = None
+    for config_path in config_paths:
+        if os.path.exists(config_path):
+            logger.info("Usando arquivo de configuração: %s", config_path)
+            try:
+                with open(config_path, "r") as file:
+                    config = yaml.safe_load(file)
+                break
+            except Exception as e:
+                logger.warning("Erro ao carregar configuração de %s: %s", config_path, e)
+
+    if config is None:
+        logger.error("Nenhum arquivo de configuração encontrado para o ambiente %s", env)
+        raise FileNotFoundError("Arquivo de configuração não encontrado")
+
     return env, config
 
 

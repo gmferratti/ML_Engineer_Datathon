@@ -4,7 +4,7 @@ from src.features.pp_mix import preprocess_mix_feats, generate_suggested_feats
 from src.features.pp_news import preprocess_news
 from src.features.pp_target import preprocess_target
 from src.features.pp_users import preprocess_users
-from storage.io import Storage
+from src.storage.io import Storage
 
 
 def _save_df_parquet(df, file_path: str, storage: Storage) -> None:

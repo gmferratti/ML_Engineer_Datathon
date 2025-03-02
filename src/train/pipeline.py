@@ -9,9 +9,10 @@ from src.train.core import (
     log_encoder_mapping,
     log_metrics,
 )
+from src.evaluation.pipeline import evaluate_model
 from src.config import logger, DATA_PATH, USE_S3, configure_mlflow, get_config
 from src.recommendation_model.lgbm_ranker import LightGBMRanker
-from storage.io import Storage
+from src.storage.io import Storage
 
 
 def load_features(storage: Storage) -> pd.DataFrame:
@@ -96,12 +97,7 @@ def train_and_log_model(
         mlflow.log_params(params)
         log_encoder_mapping(trusted_data)
 
-        # metrics = evaluate_model(
-        #     X_train.values,
-        #     y_train.values.ravel(),
-        #     group_train["groupCount"].values
-        # )
-        metrics = None
+        metrics, _ = evaluate_model(model)
         log_metrics(X_train, metrics)
         log_model_to_mlflow(model, model_name, run.info.run_id)
         logger.info("🏁 [Train] Treinamento finalizado! MLflow run_id: %s", run.info.run_id)

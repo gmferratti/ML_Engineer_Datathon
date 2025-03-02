@@ -1,4 +1,3 @@
-# src/storage/s3.py
 import os
 import tempfile
 import pickle
@@ -7,8 +6,8 @@ from typing import Any, Optional, List, BinaryIO
 import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
-from config import logger
-from storage.base import BaseStorage
+from src.config import logger
+from .base import BaseStorage
 
 
 class S3UploadFile:
@@ -72,7 +71,7 @@ class S3Storage(BaseStorage):
         key = key.replace("\\", "/")
         # 2) Se começar com "bucket/...", remove esse prefixo
         if key.startswith(self.s3_bucket + "/"):
-            key = key[len(self.s3_bucket) + 1:]
+            key = key[len(self.s3_bucket) + 1 :]
         # Remove barras iniciais redundantes
         key = key.lstrip("/")
         return key
@@ -135,9 +134,7 @@ class S3Storage(BaseStorage):
     def list_files(self, path: str, pattern: Optional[str] = None) -> List[str]:
         norm_key = self._normalize_key(path)
         try:
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.s3_bucket, Prefix=norm_key
-            )
+            response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=norm_key)
             if "Contents" not in response:
                 return []
             files = []

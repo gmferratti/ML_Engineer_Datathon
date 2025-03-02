@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from typing import List, Dict, Optional, Any
 from src.config import logger, DATA_PATH, USE_S3
-from storage.io import Storage
+from src.storage.io import Storage
 from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS, METADATA_COLS
 
 

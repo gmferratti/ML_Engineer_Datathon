@@ -6,7 +6,10 @@ from src.config import SCALING_RANGE, logger
 
 def preprocess_target(df_users: pd.DataFrame, gap_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Gera a coluna TARGET para medir o engajamento, combinando dados dos usuários com o gap temporal.
+    Preprocessa o target.
+
+    Gera a coluna TARGET para medir o engajamento, combinando
+     dados dos usuários com o gap temporal.
 
     Args:
         df_users (pd.DataFrame): Dados dos usuários.
