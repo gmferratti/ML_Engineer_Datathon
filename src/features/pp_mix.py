@@ -8,6 +8,7 @@ from .constants import (
     GAP_COLS,
     FINAL_MIX_FEAT_COLS,
 )
+from src.config import logger
 
 
 def generate_suggested_feats(
@@ -30,12 +31,14 @@ def generate_suggested_feats(
     Returns:
         pd.DataFrame: Tabela final agregada.
     """
+    logger.info("📐 [Mix] Gerando suggested_feats...")
     suggested = df_mix[FINAL_MIX_FEAT_COLS]
     suggested = suggested.merge(state_df, on=["userId", "localState"], how="left")
     suggested = suggested.merge(region_df, on=["userId", "localRegion"], how="left")
     suggested = suggested.merge(tm_df, on=["userId", "themeMain"], how="left")
     suggested = suggested.merge(ts_df, on=["userId", "themeSub"], how="left")
     cols = [col for col in suggested.columns if col.startswith("count")]
+    logger.info("📐 [Mix] Removendo colunas de contagem...")
     return suggested.drop(columns=cols)
 
 
@@ -50,10 +53,12 @@ def preprocess_mix_feats(df_news: pd.DataFrame, df_users: pd.DataFrame):
     Returns:
         tuple: (df_mix, gap_df, state_df, region_df, tm_df, ts_df)
     """
+    logger.info("🔀 [Mix] Iniciando pré-processamento do mix_feats...")
     df_news, df_users = _process_datetime(df_news, df_users)
     df_mix = pd.merge(df_users, df_news, on="pageId", how="inner")[MIX_FEATS_COLS]
     df_mix = _compute_time_gap(df_mix)
     df_mix = _compute_category_counts(df_mix)
+    logger.info("🔀 [Mix] Finalizando pré-processamento do mix_feats...")
     return _split_dataframes(df_mix)
 
 
@@ -68,6 +73,7 @@ def _process_datetime(df_news: pd.DataFrame, df_users: pd.DataFrame):
     Returns:
         tuple: (df_news, df_users) com novas colunas.
     """
+    logger.info("🕒 [Mix] Processando datas e horários...")
     df_news["issuedDate"] = pd.to_datetime(df_news["issuedDate"], format="%Y-%m-%d")
     df_users["timestampHistoryDate"] = pd.to_datetime(
         df_users["timestampHistoryDate"], format="%Y-%m-%d"
@@ -94,6 +100,7 @@ def _process_datetime(df_news: pd.DataFrame, df_users: pd.DataFrame):
             else pd.Timedelta(0)
         )
     )
+    logger.info("🕒 [Mix] Datas e horários processados.")
     return df_news, df_users
 
 
@@ -107,11 +114,13 @@ def _compute_time_gap(df_mix: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Dados com colunas de gap temporal.
     """
+    logger.info("⏱️ [Mix] Calculando gap temporal...")
     gap = df_mix["timestampHistoryDatetime"] - df_mix["issuedDatetime"]
     df_mix["timeGapDays"] = gap.dt.days
     df_mix["timeGapHours"] = gap / pd.Timedelta(hours=1)
     df_mix["timeGapMinutes"] = gap / pd.Timedelta(minutes=1)
     df_mix["timeGapLessThanOneDay"] = df_mix["timeGapHours"] <= 24
+    logger.info("⏱️ [Mix] Gap temporal calculado.")
     return df_mix
 
 
@@ -126,6 +135,7 @@ def _compute_category_counts(df_mix: pd.DataFrame, category_columns=None) -> pd.
     Returns:
         pd.DataFrame: Dados com contagens e proporções.
     """
+    logger.info("📊 [Mix] Calculando contagens por categoria...")
     if category_columns is None:
         category_columns = ["localState", "localRegion", "themeMain", "themeSub"]
     for col in category_columns:
@@ -138,6 +148,7 @@ def _compute_category_counts(df_mix: pd.DataFrame, category_columns=None) -> pd.
         count_col = f"count{title}User"
         rel_col = f"rel{title}"
         df_mix[rel_col] = df_mix[count_col] / df_mix["totalUserNews"]
+    logger.info("📊 [Mix] Contagens por categoria calculadas.")
     return df_mix
 
 
@@ -149,8 +160,9 @@ def _split_dataframes(df_mix: pd.DataFrame):
         df_mix (pd.DataFrame): Dados enriquecidos.
 
     Returns:
-        tuple: (gap_df, state_df, region_df, tm_df, ts_df)
+        tuple: (df_mix, gap_df, state_df, region_df, tm_df, ts_df)
     """
+    logger.info("🔀 [Mix] Separando subconjuntos...")
     gap_df = df_mix[GAP_COLS].copy()
     gap_df = gap_df[gap_df["timeGapDays"] >= 0].reset_index(drop=True)
     state_df = df_mix[STATE_COLS].copy()
@@ -165,4 +177,5 @@ def _split_dataframes(df_mix: pd.DataFrame):
     region_df = region_df.drop_duplicates(subset=["userId", "localRegion"])
     tm_df = tm_df.drop_duplicates(subset=["userId", "themeMain"])
     ts_df = ts_df.drop_duplicates(subset=["userId", "themeSub"])
+    logger.info("🔀 [Mix] Subconjuntos separados.")
     return df_mix, gap_df, state_df, region_df, tm_df, ts_df

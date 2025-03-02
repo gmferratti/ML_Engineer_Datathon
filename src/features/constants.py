@@ -22,15 +22,15 @@ USERS_DTYPES = {
     "pageVisitsCountHistory": "int",
 }
 
-NEWS_COLS_TO_CLEAN = ["body", "title", "caption"]
 NEWS_COLS_TO_DROP = [
     "local",
     "theme",
     "issued",
     "modified",
-    "url",
     "urlExtracted",
-] + NEWS_COLS_TO_CLEAN
+    "body",
+    "caption",
+]
 
 MIX_FEATS_COLS = [
     "userId",

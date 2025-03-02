@@ -20,7 +20,8 @@ class S3UploadFile:
         self.temp_name = temp_file.name
         self.s3_client = s3_client
         self.bucket = bucket
-        self.key = key
+        # Normaliza a chave para usar sempre "/" como separador
+        self.key = key.replace("\\", "/")
         self.closed = False
 
     def write(self, data: bytes) -> int:
@@ -80,6 +81,35 @@ class S3Storage(BaseStorage):
                 logger.error(f"Erro ao acessar S3: {e}")
             raise
 
+    def _normalize_key(self, key: str) -> str:
+        """
+        Normaliza um caminho (chave) para usar sempre "/" como separador.
+
+        Args:
+            key (str): Caminho informado.
+
+        Returns:
+            str: Caminho normalizado.
+        """
+        return key.replace("\\", "/")
+
+    def _normalize_prefix(self, path: str) -> str:
+        """
+        Remove o nome do bucket do início do caminho, se estiver presente, e normaliza o separador.
+
+        Args:
+            path (str): Caminho informado, possivelmente contendo o nome do bucket.
+
+        Returns:
+            str: Prefixo corrigido e normalizado.
+        """
+        path = self._normalize_key(path)
+        if path.startswith(self.s3_bucket):
+            path = path[len(self.s3_bucket):]
+            if path.startswith("/"):
+                path = path[1:]
+        return path
+
     def read_parquet(self, path: str, **kwargs) -> pd.DataFrame:
         """
         Lê um arquivo Parquet do S3.
@@ -91,7 +121,8 @@ class S3Storage(BaseStorage):
         Returns:
             pd.DataFrame: Dados lidos.
         """
-        return pd.read_parquet(f"s3://{self.s3_bucket}/{path}", **kwargs)
+        normalized_path = self._normalize_key(path)
+        return pd.read_parquet(f"s3://{self.s3_bucket}/{normalized_path}", **kwargs)
 
     def write_parquet(self, df: pd.DataFrame, path: str, **kwargs) -> None:
         """
@@ -102,8 +133,9 @@ class S3Storage(BaseStorage):
             path (str): Caminho relativo no bucket.
             **kwargs: Parâmetros para df.to_parquet.
         """
-        df.to_parquet(f"s3://{self.s3_bucket}/{path}", **kwargs)
-        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{path}")
+        normalized_path = self._normalize_key(path)
+        df.to_parquet(f"s3://{self.s3_bucket}/{normalized_path}", **kwargs)
+        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{normalized_path}")
 
     def read_csv(self, path: str, **kwargs) -> pd.DataFrame:
         """
@@ -116,7 +148,8 @@ class S3Storage(BaseStorage):
         Returns:
             pd.DataFrame: Dados lidos.
         """
-        return pd.read_csv(f"s3://{self.s3_bucket}/{path}", **kwargs)
+        normalized_path = self._normalize_key(path)
+        return pd.read_csv(f"s3://{self.s3_bucket}/{normalized_path}", **kwargs)
 
     def write_csv(self, df: pd.DataFrame, path: str, **kwargs) -> None:
         """
@@ -127,8 +160,9 @@ class S3Storage(BaseStorage):
             path (str): Caminho relativo.
             **kwargs: Parâmetros para df.to_csv.
         """
-        df.to_csv(f"s3://{self.s3_bucket}/{path}", **kwargs)
-        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{path}")
+        normalized_path = self._normalize_key(path)
+        df.to_csv(f"s3://{self.s3_bucket}/{normalized_path}", **kwargs)
+        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{normalized_path}")
 
     def exists(self, path: str) -> bool:
         """
@@ -140,8 +174,9 @@ class S3Storage(BaseStorage):
         Returns:
             bool: True se existir, False caso contrário.
         """
+        normalized_path = self._normalize_key(path)
         try:
-            self.s3_client.head_object(Bucket=self.s3_bucket, Key=path)
+            self.s3_client.head_object(Bucket=self.s3_bucket, Key=normalized_path)
             return True
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
@@ -159,14 +194,15 @@ class S3Storage(BaseStorage):
         Returns:
             BinaryIO: Objeto de arquivo.
         """
+        normalized_path = self._normalize_key(path)
         if mode.startswith("r"):
             temp = tempfile.NamedTemporaryFile(delete=False)
-            self.s3_client.download_fileobj(self.s3_bucket, path, temp)
+            self.s3_client.download_fileobj(self.s3_bucket, normalized_path, temp)
             temp.close()
             return open(temp.name, mode)
         elif mode.startswith("w"):
             temp = tempfile.NamedTemporaryFile(delete=False)
-            return S3UploadFile(temp, self.s3_client, self.s3_bucket, path)
+            return S3UploadFile(temp, self.s3_client, self.s3_bucket, normalized_path)
         raise ValueError(f"Modo não suportado: {mode}")
 
     def save_pickle(self, obj: Any, path: str) -> None:
@@ -177,9 +213,10 @@ class S3Storage(BaseStorage):
             obj (Any): Objeto a salvar.
             path (str): Caminho relativo.
         """
-        with self._get_s3_file(path, "wb") as f:
+        normalized_path = self._normalize_key(path)
+        with self._get_s3_file(normalized_path, "wb") as f:
             pickle.dump(obj, f)
-        logger.info(f"Objeto salvo em s3://{self.s3_bucket}/{path}")
+        logger.info(f"Objeto salvo em s3://{self.s3_bucket}/{normalized_path}")
 
     def load_pickle(self, path: str) -> Any:
         """
@@ -191,11 +228,12 @@ class S3Storage(BaseStorage):
         Returns:
             Any: Objeto carregado.
         """
+        normalized_path = self._normalize_key(path)
         try:
-            with self._get_s3_file(path, "rb") as f:
+            with self._get_s3_file(normalized_path, "rb") as f:
                 return pickle.load(f)
         except Exception as e:
-            logger.error(f"Erro ao carregar s3://{self.s3_bucket}/{path}: {e}")
+            logger.error(f"Erro ao carregar s3://{self.s3_bucket}/{normalized_path}: {e}")
             raise
 
     def list_files(self, path: str, pattern: Optional[str] = None) -> List[str]:
@@ -209,8 +247,10 @@ class S3Storage(BaseStorage):
         Returns:
             List[str]: Lista de arquivos.
         """
+        # Corrige o prefixo removendo o nome do bucket se estiver presente e normaliza os separadores
+        normalized_path = self._normalize_prefix(path)
         try:
-            response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=path)
+            response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=normalized_path)
             if "Contents" not in response:
                 return []
             files = []
@@ -220,7 +260,7 @@ class S3Storage(BaseStorage):
                     files.append(key)
             return files
         except Exception as e:
-            logger.error(f"Erro ao listar s3://{self.s3_bucket}/{path}: {e}")
+            logger.error(f"Erro ao listar s3://{self.s3_bucket}/{normalized_path}: {e}")
             raise
 
     def _match_pattern(self, filename: str, pattern: str) -> bool:
