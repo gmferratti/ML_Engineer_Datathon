@@ -20,22 +20,28 @@ def concatenate_csv_files(directory_path: str) -> pd.DataFrame:
     files_processed = 0
     try:
         csv_files = storage.list_files(directory_path, "*.csv")
-        logger.info("📂 [Utils] Encontrados %d arquivos CSV em: %s", len(csv_files), directory_path)
+        logger.info(
+            "📂 [Utils] Encontrados %d arquivos CSV em: %s", len(csv_files), directory_path
+        )
         for file_path in csv_files:
             try:
                 df = storage.read_csv(file_path)
-                logger.info("📄 [Utils] Processado: %s | Linhas: %d | Colunas: %d",
-                            os.path.basename(file_path), len(df), len(df.columns))
+                logger.info(
+                    "📄 [Utils] Processado: %s | Linhas: %d | Colunas: %d",
+                    os.path.basename(file_path),
+                    len(df),
+                    len(df.columns),
+                )
                 df_concat = pd.concat([df_concat, df], ignore_index=True)
                 files_processed += 1
             except Exception as e:
                 logger.error("🚨 [Utils] Erro ao processar %s: %s", file_path, e)
     except Exception as e:
         logger.error("🚨 [Utils] Erro ao listar arquivos em %s: %s", directory_path, e)
-    
+
     if files_processed == 0:
         logger.warning("⚠️ [Utils] Nenhum CSV encontrado em: %s", directory_path)
-    
+
     result_df = df_concat.reset_index(drop=True)
     logger.info("🔗 [Utils] Linhas após concatenação: %d", len(result_df))
     return result_df

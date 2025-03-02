@@ -12,27 +12,27 @@ from src.config import logger, NEWS_DIRECTORY
 def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     """
     Pré-processa dados de notícias, filtrando por pageIds e extraindo informações relevantes da URL.
-    
+
     Args:
         selected_pageIds (pd.Series): Lista de pageIds a serem processados.
-    
+
     Returns:
         pd.DataFrame: Notícias processadas.
     """
     logger.info("📰 [News] Iniciando pré-processamento das notícias...")
-    
+
     # Verifica e baixa recursos NLTK, se necessário
     _download_resource("stopwords", ["corpora/stopwords"])
     _download_resource("wordnet", ["corpora/wordnet", "corpora/wordnet.zip"])
     _download_resource("omw-1.4", ["corpora/omw-1.4", "corpora/omw-1.4.zip"])
-    
+
     news_df = concatenate_csv_files(NEWS_DIRECTORY)
     logger.info("📰 [News] Arquivos CSV concatenados. Total de linhas: %d", len(news_df))
-    
+
     news_df = news_df.rename(columns={"page": "pageId"})
     news_df = news_df[news_df["pageId"].isin(selected_pageIds)]
     logger.info("📰 [News] Filtrado por pageIds. Linhas após filtro: %d", len(news_df))
-    
+
     for col in ["issued", "modified"]:
         news_df[col] = pd.to_datetime(news_df[col])
         news_df[f"{col}Date"] = news_df[col].dt.date
@@ -45,7 +45,7 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     news_df["theme"] = news_df["urlExtracted"].apply(_extract_theme)
     news_df["themeMain"] = news_df["theme"].str.split("/").str[0]
     news_df["themeSub"] = news_df["theme"].str.split("/").str[1]
-        
+
     logger.info("📰 [News] Pré-processamento concluído. Linhas processadas: %d", news_df.shape[0])
     return news_df.drop(columns=NEWS_COLS_TO_DROP)
 
@@ -53,7 +53,7 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
 def _download_resource(resource_name: str, resource_paths: list) -> None:
     """
     Verifica e baixa um recurso NLTK se necessário.
-    
+
     Args:
         resource_name (str): Nome do recurso.
         resource_paths (list): Caminhos para verificação.
@@ -72,10 +72,10 @@ def _download_resource(resource_name: str, resource_paths: list) -> None:
 def _extract_url_mid_section(url: str) -> str:
     """
     Extrai a parte da URL entre 'g1.globo.com/' e '/noticia'.
-    
+
     Args:
         url (str): URL completa.
-    
+
     Returns:
         str: Miolo da URL ou None.
     """
@@ -87,10 +87,10 @@ def _extract_url_mid_section(url: str) -> str:
 def _extract_location(url_part: str) -> str:
     """
     Extrai a localidade a partir do miolo da URL.
-    
+
     Args:
         url_part (str): Miolo da URL.
-    
+
     Returns:
         str: Localidade ou None.
     """
@@ -104,10 +104,10 @@ def _extract_location(url_part: str) -> str:
 def _extract_theme(url_part: str) -> str:
     """
     Extrai o tema da notícia a partir do miolo da URL.
-    
+
     Args:
         url_part (str): Miolo da URL.
-    
+
     Returns:
         str: Tema ou None.
     """
@@ -122,12 +122,12 @@ def _extract_theme(url_part: str) -> str:
 
 def _preprocess_text(text: str) -> str:
     """
-    Limpa e padroniza o texto removendo acentos, caracteres especiais, números, 
+    Limpa e padroniza o texto removendo acentos, caracteres especiais, números,
     convertendo para minúsculas e removendo stopwords.
-    
+
     Args:
         text (str): Texto original.
-    
+
     Returns:
         str: Texto processado.
     """

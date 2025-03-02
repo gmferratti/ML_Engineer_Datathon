@@ -24,7 +24,11 @@ def _preprocess_and_save_news(data_path: str, selected_pageIds: list, storage: S
     news_df = preprocess_news(selected_pageIds)
     news_path = os.path.join(data_path, "features", "news_feats.parquet")
     _save_df_parquet(news_df, news_path, storage)
-    logger.info("📰 [News] Finalizado: %d linhas, %d páginas únicas", news_df.shape[0], news_df["pageId"].nunique())
+    logger.info(
+        "📰 [News] Finalizado: %d linhas, %d páginas únicas",
+        news_df.shape[0],
+        news_df["pageId"].nunique(),
+    )
     return news_df
 
 
@@ -36,8 +40,12 @@ def _preprocess_and_save_users(data_path: str, storage: Storage):
     users_df = preprocess_users()
     users_path = os.path.join(data_path, "features", "users_feats.parquet")
     _save_df_parquet(users_df, users_path, storage)
-    logger.info("👥 [Users] Concluído: %d linhas, %d páginas, %d usuários",
-                users_df.shape[0], users_df["pageId"].nunique(), users_df["userId"].nunique())
+    logger.info(
+        "👥 [Users] Concluído: %d linhas, %d páginas, %d usuários",
+        users_df.shape[0],
+        users_df["pageId"].nunique(),
+        users_df["userId"].nunique(),
+    )
     return users_df
 
 
@@ -47,7 +55,7 @@ def _preprocess_and_save_mix_feats(data_path: str, news_df, users_df, storage: S
     """
     logger.info("🔀 [Mix] Gerando mix_feats...")
     mix_df, gap_df, state_df, region_df, tm_df, ts_df = preprocess_mix_feats(news_df, users_df)
-    
+
     logger.info("🔀 [Mix] Salvando subconjuntos de mix_feats...")
     files = {
         "mix_feats/mix_df.parquet": mix_df,
@@ -60,22 +68,39 @@ def _preprocess_and_save_mix_feats(data_path: str, news_df, users_df, storage: S
     for rel_file, df in files.items():
         file_path = os.path.join(data_path, "features", rel_file)
         _save_df_parquet(df, file_path, storage)
-    
+
     logger.info("🔢 [Mix] mix_df: %d linhas", mix_df.shape[0])
-    logger.info("👥 [Mix] gap_df: %d linhas | %d usuários", gap_df.shape[0],
-                gap_df["userId"].nunique() if "userId" in gap_df.columns else 0)
-    logger.info("🗺️ [Mix] state_df: %d linhas | %d usuários", state_df.shape[0],
-                state_df["userId"].nunique() if "userId" in state_df.columns else 0)
-    logger.info("🗺️ [Mix] region_df: %d linhas | %d usuários", region_df.shape[0],
-                region_df["userId"].nunique() if "userId" in region_df.columns else 0)
-    logger.info("🎨 [Mix] theme_main_feats: %d linhas | %d usuários", tm_df.shape[0],
-                tm_df["userId"].nunique() if "userId" in tm_df.columns else 0)
-    logger.info("🎨 [Mix] theme_sub_feats: %d linhas | %d usuários", ts_df.shape[0],
-                ts_df["userId"].nunique() if "userId" in ts_df.columns else 0)
+    logger.info(
+        "👥 [Mix] gap_df: %d linhas | %d usuários",
+        gap_df.shape[0],
+        gap_df["userId"].nunique() if "userId" in gap_df.columns else 0,
+    )
+    logger.info(
+        "🗺️ [Mix] state_df: %d linhas | %d usuários",
+        state_df.shape[0],
+        state_df["userId"].nunique() if "userId" in state_df.columns else 0,
+    )
+    logger.info(
+        "🗺️ [Mix] region_df: %d linhas | %d usuários",
+        region_df.shape[0],
+        region_df["userId"].nunique() if "userId" in region_df.columns else 0,
+    )
+    logger.info(
+        "🎨 [Mix] theme_main_feats: %d linhas | %d usuários",
+        tm_df.shape[0],
+        tm_df["userId"].nunique() if "userId" in tm_df.columns else 0,
+    )
+    logger.info(
+        "🎨 [Mix] theme_sub_feats: %d linhas | %d usuários",
+        ts_df.shape[0],
+        ts_df["userId"].nunique() if "userId" in ts_df.columns else 0,
+    )
     return mix_df, gap_df, state_df, region_df, tm_df, ts_df
 
 
-def _assemble_and_save_suggested_feats(data_path: str, mix_df, state_df, region_df, tm_df, ts_df, storage: Storage):
+def _assemble_and_save_suggested_feats(
+    data_path: str, mix_df, state_df, region_df, tm_df, ts_df, storage: Storage
+):
     """
     Monta suggested_feats combinando os subconjuntos e salva o resultado.
     """
@@ -83,10 +108,12 @@ def _assemble_and_save_suggested_feats(data_path: str, mix_df, state_df, region_
     suggested = generate_suggested_feats(mix_df, state_df, region_df, tm_df, ts_df)
     file_path = os.path.join(data_path, "features", "suggested_feats.parquet")
     _save_df_parquet(suggested, file_path, storage)
-    logger.info("📐 [Suggested] Concluído: %d linhas | %d usuários | %d páginas",
-                suggested.shape[0],
-                suggested["userId"].nunique() if "userId" in suggested.columns else 0,
-                suggested["pageId"].nunique() if "pageId" in suggested.columns else 0)
+    logger.info(
+        "📐 [Suggested] Concluído: %d linhas | %d usuários | %d páginas",
+        suggested.shape[0],
+        suggested["userId"].nunique() if "userId" in suggested.columns else 0,
+        suggested["pageId"].nunique() if "pageId" in suggested.columns else 0,
+    )
     return suggested
 
 
@@ -98,10 +125,12 @@ def _preprocess_and_save_target(data_path: str, users_df, gap_df, storage: Stora
     target_df = preprocess_target(users_df, gap_df)
     file_path = os.path.join(data_path, "features", "target.parquet")
     _save_df_parquet(target_df, file_path, storage)
-    logger.info("🎯 [Target] Concluído: %d linhas | %d usuários | %d páginas",
-                target_df.shape[0],
-                target_df["userId"].nunique() if "userId" in target_df.columns else 0,
-                target_df["pageId"].nunique() if "pageId" in target_df.columns else 0)
+    logger.info(
+        "🎯 [Target] Concluído: %d linhas | %d usuários | %d páginas",
+        target_df.shape[0],
+        target_df["userId"].nunique() if "userId" in target_df.columns else 0,
+        target_df["pageId"].nunique() if "pageId" in target_df.columns else 0,
+    )
     return target_df
 
 
@@ -113,10 +142,12 @@ def _assemble_and_save_final_feats(data_path: str, suggested, target_df, storage
     final_feats = suggested.merge(target_df, on=["userId", "pageId"])
     file_path = os.path.join(data_path, "features", "final_feats_with_target.parquet")
     _save_df_parquet(final_feats, file_path, storage)
-    logger.info("🔗 [Final] Concluído: %d linhas | %d usuários | %d páginas",
-                final_feats.shape[0],
-                final_feats["userId"].nunique() if "userId" in final_feats.columns else 0,
-                final_feats["pageId"].nunique() if "pageId" in final_feats.columns else 0)
+    logger.info(
+        "🔗 [Final] Concluído: %d linhas | %d usuários | %d páginas",
+        final_feats.shape[0],
+        final_feats["userId"].nunique() if "userId" in final_feats.columns else 0,
+        final_feats["pageId"].nunique() if "pageId" in final_feats.columns else 0,
+    )
 
 
 def pre_process_data() -> None:
@@ -130,11 +161,15 @@ def pre_process_data() -> None:
     users_df = _preprocess_and_save_users(DATA_PATH, storage)
     selected_pageIds = list(users_df["pageId"].unique())
     news_df = _preprocess_and_save_news(DATA_PATH, selected_pageIds, storage)
-    mix_df, gap_df, state_df, region_df, tm_df, ts_df = _preprocess_and_save_mix_feats(DATA_PATH, news_df, users_df, storage)
-    suggested = _assemble_and_save_suggested_feats(DATA_PATH, mix_df, state_df, region_df, tm_df, ts_df, storage)
+    mix_df, gap_df, state_df, region_df, tm_df, ts_df = _preprocess_and_save_mix_feats(
+        DATA_PATH, news_df, users_df, storage
+    )
+    suggested = _assemble_and_save_suggested_feats(
+        DATA_PATH, mix_df, state_df, region_df, tm_df, ts_df, storage
+    )
     target_df = _preprocess_and_save_target(DATA_PATH, users_df, gap_df, storage)
     _assemble_and_save_final_feats(DATA_PATH, suggested, target_df, storage)
-    
+
     logger.info("=== ✅ Pipeline de Feature Engineering Finalizado com Sucesso! ===")
 
 

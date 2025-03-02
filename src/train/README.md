@@ -71,11 +71,3 @@ loaded_model = load_model_from_mlflow(model_name="custom-model", model_alias="pr
 # Gera um nome de execução baseado em timestamp
 run_name = get_run_name(model_name="custom-model")
 ```
-
-## Convenções de Nomenclatura
-
-Os experimentos MLflow seguem a convenção de nomenclatura `{model_name}-{YYYYmmdd-HHMMSS}`, permitindo:
-
-- Identificação clara do tipo de modelo
-- Fácil ordenação cronológica 
-- Rastreabilidade para diagnóstico de problemas

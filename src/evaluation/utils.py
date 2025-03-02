@@ -11,7 +11,7 @@ def evaluate_model(
     model: LightGBMRanker, evaluation_data: pd.DataFrame, k_ndcg: int = 10
 ) -> Dict:
     """
-    Avalia o modelo de recomendação usando NDCG@k, considerando que evaluation_data 
+    Avalia o modelo de recomendação usando NDCG@k, considerando que evaluation_data
     possui colunas de features e uma coluna 'TARGET' com a relevância.
 
     Args:

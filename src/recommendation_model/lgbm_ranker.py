@@ -54,7 +54,7 @@ class LightGBMRanker(BaseRecommender):
             if client_features is None or news_features is None:
                 raise ValueError("Input deve ter 'client_features' e 'news_features'.")
             X = np.concatenate([client_features, news_features], axis=1)
-            
+
         if self.model is None:
             raise ValueError("Modelo não treinado. Execute train() primeiro.")
         return self.model.predict(X)

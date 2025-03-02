@@ -14,33 +14,37 @@ def preprocess_users() -> pd.DataFrame:
     logger.info("👥 [Users] Iniciando pré-processamento dos usuários...")
     users_df = concatenate_csv_files(USERS_DIRECTORY)
     logger.info("👥 [Users] Dados carregados: %d linhas (antes da amostragem).", len(users_df))
-    
+
     users_df = users_df.sample(frac=SAMPLE_RATE, random_state=42)
-    logger.info("👥 [Users] Amostragem aplicada (taxa: %.2f). Linhas após amostragem: %d", SAMPLE_RATE, len(users_df))
-    
+    logger.info(
+        "👥 [Users] Amostragem aplicada (taxa: %.2f). Linhas após amostragem: %d",
+        SAMPLE_RATE,
+        len(users_df),
+    )
+
     users_df = _process_history_columns(users_df)
     logger.info("👥 [Users] Histórico processado.")
-    
+
     users_df = users_df.astype(USERS_DTYPES)
     logger.info("👥 [Users] Conversão de tipos realizada.")
-    
+
     users_df = _process_timestamp(users_df)
     logger.info("👥 [Users] Timestamps processados.")
-    
+
     users_df = _extract_time_features(users_df)
     logger.info("👥 [Users] Novas features temporais extraídas.")
-    
+
     users_df["coldStart"] = users_df["historySize"] < COLD_START_THRESHOLD
     logger.info("👥 [Users] Flag 'coldStart' definida (threshold: %d).", COLD_START_THRESHOLD)
-    
+
     users_df.rename(columns={"history": "pageId"}, inplace=True)
     users_df.drop(columns=["timestampHistory", "timestampHistory_new"], inplace=True)
     logger.info("👥 [Users] Renomeação e remoção de colunas concluídas.")
-    
+
     users_df = _downcast_columns(users_df)
     logger.info("👥 [Users] Downcast realizado nos dados numéricos.")
     logger.info("👥 [Users] Pré-processamento dos usuários concluído: %d linhas.", len(users_df))
-    
+
     return users_df
 
 
@@ -54,9 +58,13 @@ def _process_history_columns(users_df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Dados com histórico processado.
     """
-    users_df[USERS_COLS_TO_EXPLODE] = users_df[USERS_COLS_TO_EXPLODE].apply(lambda col: col.str.split(","))
+    users_df[USERS_COLS_TO_EXPLODE] = users_df[USERS_COLS_TO_EXPLODE].apply(
+        lambda col: col.str.split(",")
+    )
     users_df = users_df.explode(USERS_COLS_TO_EXPLODE)
-    users_df[USERS_COLS_TO_EXPLODE] = users_df[USERS_COLS_TO_EXPLODE].apply(lambda col: col.str.strip())
+    users_df[USERS_COLS_TO_EXPLODE] = users_df[USERS_COLS_TO_EXPLODE].apply(
+        lambda col: col.str.strip()
+    )
     return users_df
 
 
@@ -127,11 +135,21 @@ def _downcast_columns(users_df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Dados otimizados.
     """
     users_df["historySize"] = pd.to_numeric(users_df["historySize"], downcast="integer")
-    users_df["numberOfClicksHistory"] = pd.to_numeric(users_df["numberOfClicksHistory"], downcast="integer")
-    users_df["timeOnPageHistory"] = pd.to_numeric(users_df["timeOnPageHistory"], downcast="integer")
-    users_df["pageVisitsCountHistory"] = pd.to_numeric(users_df["pageVisitsCountHistory"], downcast="integer")
-    users_df["scrollPercentageHistory"] = pd.to_numeric(users_df["scrollPercentageHistory"], downcast="float")
-    users_df["minutesSinceLastVisit"] = pd.to_numeric(users_df["minutesSinceLastVisit"], downcast="float")
+    users_df["numberOfClicksHistory"] = pd.to_numeric(
+        users_df["numberOfClicksHistory"], downcast="integer"
+    )
+    users_df["timeOnPageHistory"] = pd.to_numeric(
+        users_df["timeOnPageHistory"], downcast="integer"
+    )
+    users_df["pageVisitsCountHistory"] = pd.to_numeric(
+        users_df["pageVisitsCountHistory"], downcast="integer"
+    )
+    users_df["scrollPercentageHistory"] = pd.to_numeric(
+        users_df["scrollPercentageHistory"], downcast="float"
+    )
+    users_df["minutesSinceLastVisit"] = pd.to_numeric(
+        users_df["minutesSinceLastVisit"], downcast="float"
+    )
     users_df["timestampHistoryWeekday"] = users_df["timestampHistoryWeekday"].astype("int16")
     users_df["timestampHistoryHour"] = users_df["timestampHistoryHour"].astype("int16")
     return users_df
