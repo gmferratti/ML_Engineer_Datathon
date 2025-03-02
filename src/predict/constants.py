@@ -1,3 +1,5 @@
+# src/predict/constants.py
+
 EXPECTED_COLUMNS = [
     "isWeekend",
     "relLocalState",
@@ -11,3 +13,18 @@ EXPECTED_COLUMNS = [
     "themeMainFreq",
     "themeSubFreq",
 ]
+
+CLIENT_FEATURES_COLUMNS = ["isWeekend", "userTypeFreq", "dayPeriodFreq"]
+
+NEWS_FEATURES_COLUMNS = [
+    "relLocalState",
+    "relLocalRegion",
+    "relThemeMain",
+    "relThemeSub",
+    "localStateFreq",
+    "localRegionFreq",
+    "themeMainFreq",
+    "themeSubFreq",
+]
+
+METADATA_COLS = ["pageId", "url", "title", "issuedDate", "issuedTime"]

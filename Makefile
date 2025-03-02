@@ -89,27 +89,27 @@ mlflow-start: setup-mlflow
 ################################################################### PROJECT RUNNING ###################################################################
 #######################################################################################################################################################
 
+.PHONY: pp_features train predict evaluate run
+
 pp_features:
 	PYTHONPATH="." uv run src/features/pipeline.py
 
-# train:
-# 	uv run src/train/train.py
-
 train:
-	# PYTHONPATH="."
-	uv run src/train/pipeline.py   
-  
-predict:
-	uv run src/predict/predict.py
+	PYTHONPATH="." uv run src/train/pipeline.py
 
-run_all:
-	uv run src/features/pipeline.py && uv run src/train/pipeline.py
+predict:
+	PYTHONPATH="." uv run src/predict/pipeline.py
+
+evaluate:
+	PYTHONPATH="." uv run src/evaluation/pipeline.py
+	
+run: pp_features train predict # evaluate
 
 local_api:
-	uv run src/api/app.py
+	PYTHONPATH="." uvicorn src.api.app:app --reload
 
 docker_api:
-	docker-compose up --build
+	PYTHONPATH="." docker-compose up --build
 
 # IMPORTANTE: Para rodar estes comandos no Windows: 
 

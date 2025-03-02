@@ -1,3 +1,4 @@
+# src/storage/s3.py
 import os
 import tempfile
 import pickle
@@ -20,25 +21,13 @@ class S3UploadFile:
         self.temp_name = temp_file.name
         self.s3_client = s3_client
         self.bucket = bucket
-        self.key = key
+        self.key = key  # Já normalizado
         self.closed = False
 
     def write(self, data: bytes) -> int:
-        """
-        Escreve dados no arquivo temporário.
-
-        Args:
-            data (bytes): Dados a escrever.
-
-        Returns:
-            int: Número de bytes escritos.
-        """
         return self.temp_file.write(data)
 
     def close(self) -> None:
-        """
-        Fecha o arquivo e faz upload para S3.
-        """
         if not self.closed:
             self.temp_file.close()
             self.s3_client.upload_file(self.temp_name, self.bucket, self.key)
@@ -58,12 +47,6 @@ class S3Storage(BaseStorage):
     """
 
     def __init__(self, bucket: str):
-        """
-        Inicializa a conexão com o S3.
-
-        Args:
-            bucket (str): Nome do bucket S3.
-        """
         self.s3_bucket = bucket
         try:
             self.s3_client = boto3.client("s3")
@@ -80,68 +63,42 @@ class S3Storage(BaseStorage):
                 logger.error(f"Erro ao acessar S3: {e}")
             raise
 
+    def _normalize_key(self, key: str) -> str:
+        """
+        Garante que o separador seja "/", remove duplicações
+        e retira o prefixo do bucket se existir.
+        """
+        # 1) Troca "\" por "/"
+        key = key.replace("\\", "/")
+        # 2) Se começar com "bucket/...", remove esse prefixo
+        if key.startswith(self.s3_bucket + "/"):
+            key = key[len(self.s3_bucket) + 1:]
+        # Remove barras iniciais redundantes
+        key = key.lstrip("/")
+        return key
+
     def read_parquet(self, path: str, **kwargs) -> pd.DataFrame:
-        """
-        Lê um arquivo Parquet do S3.
-
-        Args:
-            path (str): Caminho relativo no bucket.
-            **kwargs: Parâmetros para pd.read_parquet.
-
-        Returns:
-            pd.DataFrame: Dados lidos.
-        """
-        return pd.read_parquet(f"s3://{self.s3_bucket}/{path}", **kwargs)
+        norm_key = self._normalize_key(path)
+        return pd.read_parquet(f"s3://{self.s3_bucket}/{norm_key}", **kwargs)
 
     def write_parquet(self, df: pd.DataFrame, path: str, **kwargs) -> None:
-        """
-        Salva um DataFrame como Parquet no S3.
-
-        Args:
-            df (pd.DataFrame): Dados a salvar.
-            path (str): Caminho relativo no bucket.
-            **kwargs: Parâmetros para df.to_parquet.
-        """
-        df.to_parquet(f"s3://{self.s3_bucket}/{path}", **kwargs)
-        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{path}")
+        norm_key = self._normalize_key(path)
+        df.to_parquet(f"s3://{self.s3_bucket}/{norm_key}", **kwargs)
+        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{norm_key}")
 
     def read_csv(self, path: str, **kwargs) -> pd.DataFrame:
-        """
-        Lê um CSV do S3.
-
-        Args:
-            path (str): Caminho relativo.
-            **kwargs: Parâmetros para pd.read_csv.
-
-        Returns:
-            pd.DataFrame: Dados lidos.
-        """
-        return pd.read_csv(f"s3://{self.s3_bucket}/{path}", **kwargs)
+        norm_key = self._normalize_key(path)
+        return pd.read_csv(f"s3://{self.s3_bucket}/{norm_key}", **kwargs)
 
     def write_csv(self, df: pd.DataFrame, path: str, **kwargs) -> None:
-        """
-        Salva um DataFrame como CSV no S3.
-
-        Args:
-            df (pd.DataFrame): Dados a salvar.
-            path (str): Caminho relativo.
-            **kwargs: Parâmetros para df.to_csv.
-        """
-        df.to_csv(f"s3://{self.s3_bucket}/{path}", **kwargs)
-        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{path}")
+        norm_key = self._normalize_key(path)
+        df.to_csv(f"s3://{self.s3_bucket}/{norm_key}", **kwargs)
+        logger.info(f"Arquivo salvo em s3://{self.s3_bucket}/{norm_key}")
 
     def exists(self, path: str) -> bool:
-        """
-        Verifica se um arquivo existe no S3.
-
-        Args:
-            path (str): Caminho relativo.
-
-        Returns:
-            bool: True se existir, False caso contrário.
-        """
+        norm_key = self._normalize_key(path)
         try:
-            self.s3_client.head_object(Bucket=self.s3_bucket, Key=path)
+            self.s3_client.head_object(Bucket=self.s3_bucket, Key=norm_key)
             return True
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
@@ -149,68 +106,38 @@ class S3Storage(BaseStorage):
             raise
 
     def _get_s3_file(self, path: str, mode: str) -> BinaryIO:
-        """
-        Obtém um arquivo do S3 para leitura ou escrita.
-
-        Args:
-            path (str): Caminho relativo.
-            mode (str): Modo ('rb' ou 'wb').
-
-        Returns:
-            BinaryIO: Objeto de arquivo.
-        """
+        norm_key = self._normalize_key(path)
         if mode.startswith("r"):
             temp = tempfile.NamedTemporaryFile(delete=False)
-            self.s3_client.download_fileobj(self.s3_bucket, path, temp)
+            self.s3_client.download_fileobj(self.s3_bucket, norm_key, temp)
             temp.close()
             return open(temp.name, mode)
         elif mode.startswith("w"):
             temp = tempfile.NamedTemporaryFile(delete=False)
-            return S3UploadFile(temp, self.s3_client, self.s3_bucket, path)
+            return S3UploadFile(temp, self.s3_client, self.s3_bucket, norm_key)
         raise ValueError(f"Modo não suportado: {mode}")
 
     def save_pickle(self, obj: Any, path: str) -> None:
-        """
-        Salva um objeto em pickle no S3.
-
-        Args:
-            obj (Any): Objeto a salvar.
-            path (str): Caminho relativo.
-        """
-        with self._get_s3_file(path, "wb") as f:
+        norm_key = self._normalize_key(path)
+        with self._get_s3_file(norm_key, "w") as f:
             pickle.dump(obj, f)
-        logger.info(f"Objeto salvo em s3://{self.s3_bucket}/{path}")
+        logger.info(f"Objeto salvo em s3://{self.s3_bucket}/{norm_key}")
 
     def load_pickle(self, path: str) -> Any:
-        """
-        Carrega um objeto pickle do S3.
-
-        Args:
-            path (str): Caminho relativo.
-
-        Returns:
-            Any: Objeto carregado.
-        """
+        norm_key = self._normalize_key(path)
         try:
-            with self._get_s3_file(path, "rb") as f:
+            with self._get_s3_file(norm_key, "r") as f:
                 return pickle.load(f)
         except Exception as e:
-            logger.error(f"Erro ao carregar s3://{self.s3_bucket}/{path}: {e}")
+            logger.error(f"Erro ao carregar s3://{self.s3_bucket}/{norm_key}: {e}")
             raise
 
     def list_files(self, path: str, pattern: Optional[str] = None) -> List[str]:
-        """
-        Lista arquivos em um prefixo do S3.
-
-        Args:
-            path (str): Prefixo.
-            pattern (str, optional): Padrão para filtrar.
-
-        Returns:
-            List[str]: Lista de arquivos.
-        """
+        norm_key = self._normalize_key(path)
         try:
-            response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket, Prefix=path)
+            response = self.s3_client.list_objects_v2(
+                Bucket=self.s3_bucket, Prefix=norm_key
+            )
             if "Contents" not in response:
                 return []
             files = []
@@ -220,18 +147,8 @@ class S3Storage(BaseStorage):
                     files.append(key)
             return files
         except Exception as e:
-            logger.error(f"Erro ao listar s3://{self.s3_bucket}/{path}: {e}")
+            logger.error(f"Erro ao listar s3://{self.s3_bucket}/{norm_key}: {e}")
             raise
 
     def _match_pattern(self, filename: str, pattern: str) -> bool:
-        """
-        Verifica se o nome do arquivo corresponde ao padrão.
-
-        Args:
-            filename (str): Nome do arquivo.
-            pattern (str): Padrão.
-
-        Returns:
-            bool: True se corresponder, False caso contrário.
-        """
         return fnmatch.fnmatch(os.path.basename(filename), pattern)

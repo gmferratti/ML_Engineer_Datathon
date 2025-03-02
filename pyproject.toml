@@ -28,6 +28,7 @@ dependencies = [
     "category-encoders>=2.6.4",
     "nltk==3.9.1",
     "notebook>=7.3.2",
+    "colorama==0.4.6"
 ]
 
 [project.optional-dependencies]

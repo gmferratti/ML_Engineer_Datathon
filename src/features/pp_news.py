@@ -11,32 +11,43 @@ from src.config import logger, NEWS_DIRECTORY
 
 def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     """
-    Pré-processa dados de notícias.
+    Pré-processa dados de notícias, filtrando por pageIds e extraindo informações relevantes da URL.
 
     Args:
-        selected_pageIds (pd.Series): Lista de pageId.
+        selected_pageIds (pd.Series): Lista de pageIds a serem processados.
 
     Returns:
-        pd.DataFrame: Notícias pré-processadas.
+        pd.DataFrame: Notícias processadas.
     """
+    logger.info("📰 [News] Iniciando pré-processamento das notícias...")
+
+    # Verifica e baixa recursos NLTK, se necessário
     _download_resource("stopwords", ["corpora/stopwords"])
     _download_resource("wordnet", ["corpora/wordnet", "corpora/wordnet.zip"])
     _download_resource("omw-1.4", ["corpora/omw-1.4", "corpora/omw-1.4.zip"])
-    df = concatenate_csv_files(NEWS_DIRECTORY)
-    df = df.rename(columns={"page": "pageId"})
-    df = df[df["pageId"].isin(selected_pageIds)]
+
+    news_df = concatenate_csv_files(NEWS_DIRECTORY)
+    logger.info("📰 [News] Arquivos CSV concatenados. Total de linhas: %d", len(news_df))
+
+    news_df = news_df.rename(columns={"page": "pageId"})
+    news_df = news_df[news_df["pageId"].isin(selected_pageIds)]
+    logger.info("📰 [News] Filtrado por pageIds. Linhas após filtro: %d", len(news_df))
+
     for col in ["issued", "modified"]:
-        df[col] = pd.to_datetime(df[col])
-        df[f"{col}Date"] = df[col].dt.date
-        df[f"{col}Time"] = df[col].dt.time
-    df["urlExtracted"] = df["url"].apply(_extract_url_mid_section)
-    df["local"] = df["urlExtracted"].apply(_extract_location)
-    df["localState"] = df["local"].str.split("/").str[0]
-    df["localRegion"] = df["local"].str.split("/").str[1]
-    df["theme"] = df["urlExtracted"].apply(_extract_theme)
-    df["themeMain"] = df["theme"].str.split("/").str[0]
-    df["themeSub"] = df["theme"].str.split("/").str[1]
-    return df.drop(columns=NEWS_COLS_TO_DROP)
+        news_df[col] = pd.to_datetime(news_df[col])
+        news_df[f"{col}Date"] = news_df[col].dt.date
+        news_df[f"{col}Time"] = news_df[col].dt.time
+
+    news_df["urlExtracted"] = news_df["url"].apply(_extract_url_mid_section)
+    news_df["local"] = news_df["urlExtracted"].apply(_extract_location)
+    news_df["localState"] = news_df["local"].str.split("/").str[0]
+    news_df["localRegion"] = news_df["local"].str.split("/").str[1]
+    news_df["theme"] = news_df["urlExtracted"].apply(_extract_theme)
+    news_df["themeMain"] = news_df["theme"].str.split("/").str[0]
+    news_df["themeSub"] = news_df["theme"].str.split("/").str[1]
+
+    logger.info("📰 [News] Pré-processamento concluído. Linhas processadas: %d", news_df.shape[0])
+    return news_df.drop(columns=NEWS_COLS_TO_DROP)
 
 
 def _download_resource(resource_name: str, resource_paths: list) -> None:
@@ -47,18 +58,15 @@ def _download_resource(resource_name: str, resource_paths: list) -> None:
         resource_name (str): Nome do recurso.
         resource_paths (list): Caminhos para verificação.
     """
-    found = False
     for path in resource_paths:
         try:
             nltk.data.find(path)
-            found = True
-            logger.info("Recurso '%s' já baixado.", resource_name)
-            break
+            logger.info("📚 [News] Recurso '%s' já disponível.", resource_name)
+            return
         except LookupError:
             continue
-    if not found:
-        nltk.download(resource_name)
-        logger.info("Recurso '%s' baixado.", resource_name)
+    nltk.download(resource_name)
+    logger.info("⬇️ [News] Recurso '%s' baixado.", resource_name)
 
 
 def _extract_url_mid_section(url: str) -> str:
@@ -78,7 +86,7 @@ def _extract_url_mid_section(url: str) -> str:
 
 def _extract_location(url_part: str) -> str:
     """
-    Extrai a localidade do miolo da URL.
+    Extrai a localidade a partir do miolo da URL.
 
     Args:
         url_part (str): Miolo da URL.
@@ -114,8 +122,8 @@ def _extract_theme(url_part: str) -> str:
 
 def _preprocess_text(text: str) -> str:
     """
-    Limpa e padroniza o texto removendo acentos, caracteres especiais,
-    números, convertendo para minúsculas e removendo stopwords.
+    Limpa e padroniza o texto removendo acentos, caracteres especiais, números,
+    convertendo para minúsculas e removendo stopwords.
 
     Args:
         text (str): Texto original.

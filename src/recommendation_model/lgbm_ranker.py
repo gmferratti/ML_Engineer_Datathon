@@ -1,5 +1,6 @@
 import lightgbm as lgb
 import numpy as np
+import pandas as pd
 from .base_model import BaseRecommender
 
 
@@ -40,18 +41,20 @@ class LightGBMRanker(BaseRecommender):
     def predict(self, model_input):
         """
         Realiza a predição combinando as features.
-
-        Args:
-            model_input (dict): Contém 'client_features' e 'news_features'.
-
-        Returns:
-            np.ndarray: Scores preditos.
+        Se o input for um DataFrame (do modelo remoto registrado no MLflow), usa-o diretamente.
+        Caso contrário, espera um dict com 'client_features' e 'news_features' (usado localmente).
         """
-        client_features = model_input.get("client_features")
-        news_features = model_input.get("news_features")
-        if client_features is None or news_features is None:
-            raise ValueError("Input deve ter 'client_features' e 'news_features'.")
-        X = np.concatenate([client_features, news_features], axis=1)
+        # Se a entrada for um DataFrame, assumimos que já é a matriz final de features.
+        if isinstance(model_input, pd.DataFrame):
+            X = model_input.values
+        else:
+            # Se for um dicionário, extraímos as features separadas e concatenamos.
+            client_features = model_input.get("client_features")
+            news_features = model_input.get("news_features")
+            if client_features is None or news_features is None:
+                raise ValueError("Input deve ter 'client_features' e 'news_features'.")
+            X = np.concatenate([client_features, news_features], axis=1)
+
         if self.model is None:
             raise ValueError("Modelo não treinado. Execute train() primeiro.")
         return self.model.predict(X)

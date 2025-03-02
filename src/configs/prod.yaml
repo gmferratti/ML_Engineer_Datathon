@@ -1,7 +1,7 @@
 # MLflow configuration
-MLFLOW_TRACKING_URI: "http://35.173.177.71:5000"
-MLFLOW_REGISTRY_URI: "http://35.173.177.71:5000"
-MLFLOW_ARTIFACT_ROOT: "s3://mlflow-datathon-grupo57" 
+MLFLOW_TRACKING_URI: "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"
+MLFLOW_REGISTRY_URI: "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"
+MLFLOW_ARTIFACT_ROOT: "s3://mlflow-datathon-grupo57"
 EXPERIMENT: "news-recommendation-prod"
 MODEL_NAME: "news-recommender-prod"
 
@@ -17,11 +17,10 @@ LOCAL_DATA_PATH: "data/"
 
 # Features configuration
 COLD_START_THRESHOLD: 5
-SAMPLE_RATE: 1.0  # Em produção, usar todo o dataset
+SAMPLE_RATE: 1.0 # Em produção, usar todo o dataset
 SCALING_RANGE: 100
 NEWS_DIRECTORY: "challenge-webmedia-e-globo-2023/itens/itens"
 USERS_DIRECTORY: "challenge-webmedia-e-globo-2023/files/treino"
-
 
 # Model hyperparameters
 MODEL_PARAMS:
