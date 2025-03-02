@@ -111,6 +111,9 @@ local_api:
 docker_api:
 	PYTHONPATH="." docker-compose up --build
 
+test:
+	PYTHONPATH="." pytest --disable-warnings
+
 # IMPORTANTE: Para rodar estes comandos no Windows: 
 
 # 1. instale o MakeFile usando choco install make no VSCode (modo Admin) 

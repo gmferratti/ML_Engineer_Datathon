@@ -41,7 +41,7 @@ function show_help {
     exit 0
 }
 
-# Processar argumentos
+# Processar argumentos para exibir ajuda
 for arg in "$@"; do
     if [ "$arg" == "help" ]; then
         show_help
@@ -74,7 +74,7 @@ MODE="full"
 REBUILD="false"
 SHOW_LOGS="false"
 
-# Processar argumentos
+# Processar argumentos para definir ENV, MODE e opções
 for arg in "$@"; do
     case $arg in
         "dev"|"prod")
@@ -173,10 +173,10 @@ else
     echo -e "${YELLOW}Usando MLflow local em: http://localhost:5001${NC}"
 fi
 
-# Exibir logs se solicitado
+# Exibir logs se solicitado, forçando toda a saída em verde
 if [ "$SHOW_LOGS" == "true" ]; then
     echo -e "${YELLOW}Exibindo logs (Ctrl+C para parar)...${NC}"
-    docker-compose logs -f
+    docker-compose logs -f --ansi=never | sed -r "s/\x1B\[[0-9;]*[a-zA-Z]//g" | awk '{print "\033[0;32m" $0 "\033[0m"}'
 else
     echo -e "${YELLOW}Para visualizar logs: docker-compose logs -f${NC}"
 fi
