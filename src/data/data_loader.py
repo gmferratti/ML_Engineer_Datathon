@@ -5,20 +5,20 @@ from src.config import logger, DATA_PATH, USE_S3
 from storage.io import Storage
 from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS
 
-def get_client_features(user_id: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
+def get_client_features(userId: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
     """
     Obtém as características de um cliente.
 
     Args:
-        user_id (str): ID do usuário.
+        userId (str): ID do usuário.
         clients_features_df (pd.DataFrame): Dados dos clientes.
 
     Returns:
         pd.Series or None: Características do cliente, ou None se não encontrado.
     """
-    df = clients_features_df[clients_features_df["userId"] == user_id]
+    df = clients_features_df[clients_features_df["userId"] == userId]
     if df.empty:
-        logger.warning("Nenhuma feature encontrada para o usuário: %s", user_id)
+        logger.warning("Nenhuma feature encontrada para o usuário: %s", userId)
         return None
     return df.iloc[0]
 

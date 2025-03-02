@@ -14,7 +14,7 @@ def validate_features(df: pd.DataFrame, required_cols: List[str], source: str) -
         raise KeyError(f"Colunas ausentes em {source}: {missing}")
     logger.info("👍 [Predict] Todas as colunas necessárias foram encontradas em %s.", source)
 
-def build_model_input(user_id: str,
+def build_model_input(userId: str,
                       clients_features_df: pd.DataFrame,
                       news_features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -22,19 +22,19 @@ def build_model_input(user_id: str,
     separados de clientes e notícias.
     """
     # Obtém as features do cliente
-    client_feat = get_client_features(user_id, clients_features_df)
+    client_feat = get_client_features(userId, clients_features_df)
     if client_feat is None:
-        logger.warning("⚠️ [Predict] Nenhuma feature encontrada para o usuário %s.", user_id)
+        logger.warning("⚠️ [Predict] Nenhuma feature encontrada para o usuário %s.", userId)
         return pd.DataFrame(), pd.DataFrame()
     
     client_df = pd.DataFrame([client_feat])
-    logger.info("👤 [Predict] Features do cliente obtidas para o usuário %s.", user_id)
+    logger.info("👤 [Predict] Features do cliente obtidas para o usuário %s.", userId)
     logger.info("📋 [Predict] Colunas do cliente: %s", client_df.columns.tolist())
 
     # Supondo que todas as notícias estão disponíveis (sem histórico de visualizações)
     non_viewed = news_features_df.copy()
     if non_viewed.empty:
-        logger.warning("⚠️ [Predict] Nenhuma notícia disponível para o usuário %s.", user_id)
+        logger.warning("⚠️ [Predict] Nenhuma notícia disponível para o usuário %s.", userId)
         return pd.DataFrame(), non_viewed
 
     # Validação das colunas obrigatórias
@@ -69,7 +69,7 @@ def build_model_input(user_id: str,
                 len(final_input), final_input.columns.tolist())
     return final_input, non_viewed
 
-def predict_for_userId(user_id: str,
+def predict_for_userId(userId: str,
                        clients_features_df: pd.DataFrame,
                        news_features_df: pd.DataFrame,
                        model,
@@ -78,18 +78,18 @@ def predict_for_userId(user_id: str,
     """
     Realiza a predição e gera recomendações para o usuário.
     """
-    final_input, non_viewed = build_model_input(user_id, clients_features_df, news_features_df)
+    final_input, non_viewed = build_model_input(userId, clients_features_df, news_features_df)
     if final_input.empty:
-        logger.info("🙁 [Predict] Nenhum input construído para o usuário %s.", user_id)
+        logger.info("🙁 [Predict] Nenhum input construído para o usuário %s.", userId)
         return []
     
     # Realiza a predição
     scores = model.predict(final_input)
-    logger.info("🔮 [Predict] Predição realizada para o usuário %s com %d scores.", user_id, len(scores))
+    logger.info("🔮 [Predict] Predição realizada para o usuário %s com %d scores.", userId, len(scores))
     
     # Gera as recomendações
     recommendations = get_predicted_news(scores, non_viewed, n=n, score_threshold=score_threshold)
-    logger.info("🎯 [Predict] Recomendações geradas para o usuário %s.", user_id)
+    logger.info("🎯 [Predict] Recomendações geradas para o usuário %s.", userId)
     return recommendations
 
 def main():
@@ -102,18 +102,18 @@ def main():
     configure_mlflow()
     model = load_model_from_mlflow()
     
-    user_id = "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297"
-    logger.info("=== 🚀 [Predict] Processando predição para o usuário: %s ===", user_id)
+    userId = "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297"
+    logger.info("=== 🚀 [Predict] Processando predição para o usuário: %s ===", userId)
     
-    recommendations = predict_for_userId(user_id, clients_features_df, news_features_df, model)
+    recommendations = predict_for_userId(userId, clients_features_df, news_features_df, model)
     
     if recommendations:
-        logger.info("👍 [Predict] Recomendações para o usuário %s: %s", user_id, recommendations)
+        logger.info("👍 [Predict] Recomendações para o usuário %s: %s", userId, recommendations)
         print("🔔 Recomendações:")
         for rec in recommendations:
             print(" -", rec)
     else:
-        logger.info("😕 [Predict] Nenhuma recomendação gerada para o usuário %s.", user_id)
+        logger.info("😕 [Predict] Nenhuma recomendação gerada para o usuário %s.", userId)
     
     logger.info("=== ✅ [Predict] Pipeline de Predição Finalizado ===")
 

@@ -6,21 +6,20 @@ from contextlib import asynccontextmanager  # ✅ Importação correta
 
 import mlflow
 import pandas as pd
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from mlflow.tracking import MlflowClient
 
 from predict.pipeline import predict_for_userId
 from config import get_config, USE_S3
 from storage.io import Storage
 from data.data_loader import load_data_for_prediction, load_model
+from config import configure_logger
 
-# Configuração de logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(message)s",
-)
-logger = logging.getLogger("api")
+# Configura o logger usando a função centralizada
+logger = configure_logger("api")
 
 # Inicialização do Storage
 storage = Storage(use_s3=USE_S3)
@@ -59,7 +58,7 @@ app.add_middleware(
 # Modelos Pydantic
 
 class PredictRequest(BaseModel):
-    user_id: str = Field(..., description="ID do usuário para recomendação")
+    userId: str = Field(..., description="ID do usuário para recomendação")
     max_results: int = Field(5, description="Número máximo de recomendações")
     min_score: float = Field(
         0.3, alias="minScore", description="Score mínimo para considerar uma recomendação"
@@ -77,7 +76,7 @@ class NewsItem(BaseModel):
 
 
 class PredictResponse(BaseModel):
-    user_id: str = Field(..., description="ID do usuário")
+    userId: str = Field(..., description="ID do usuário")
     recommendations: List[NewsItem] = Field(..., description="Lista de recomendações")
     model_version: str = Field(..., description="Versão do modelo usado")
     cold_start: bool = Field(False, description="Indica se o usuário é cold start")
@@ -172,15 +171,24 @@ def get_prediction_data():
     return app.state.prediction_data
 
 
+from mlflow.tracking import MlflowClient
+
 def get_model_version(model=Depends(get_model)) -> str:
     try:
-        # Tenta obter a versão do modelo MLflow
+        # Tenta obter a versão a partir dos metadados do objeto, se disponíveis
         if hasattr(model, "metadata") and hasattr(model.metadata, "get"):
-            return model.metadata.get("mlflow.runName", "unknown")
-        # Para modelo carregado do arquivo pickle
-        elif hasattr(model, "__version__"):
-            return getattr(model, "__version__")
-        # Versão padrão
+            version = model.metadata.get("mlflow.runName", None)
+            if version:
+                return version
+        # Se não estiver disponível, consulta o MLflow Registry
+        model_name = get_config("MODEL_NAME", "news-recommender")
+        model_alias = get_config("MODEL_ALIAS", "champion")
+        client = MlflowClient()
+        # Consulta a última versão registrada para o modelo e alias (champion)
+        latest_versions = client.get_latest_versions(model_name, stages=["None"])
+        if latest_versions:
+            # Se houver múltiplas, pega a última (ou ajuste conforme sua lógica)
+            return latest_versions[-1].version
         return "unknown"
     except Exception as e:
         logger.error(f"Erro ao obter versão do modelo: {e}")
@@ -213,7 +221,7 @@ def predict(request: PredictRequest):
 
         # Obtém uma lista de IDs das notícias recomendadas
         rec_ids = predict_for_userId(
-            userId=request.user_id,
+            userId=request.userId,
             news_features_df=news_features_df,
             clients_features_df=clients_features_df,
             model=model,
@@ -237,7 +245,7 @@ def predict(request: PredictRequest):
 
         processing_time_ms = (time.time() - start_time) * 1000
         return PredictResponse(
-            user_id=request.user_id,
+            userId=request.userId,
             recommendations=rec_items,
             model_version=get_model_version(model),
             cold_start=False,
