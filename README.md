@@ -131,42 +131,25 @@ Após testes e validação, o sistema é empacotado com Docker e passa por um ri
 
 ---
 
-## Estrutura do Projeto
-
-A organização do projeto é a seguinte:
+## 🏗️ Estrutura do Projeto
 
 ```
 .
-├── Dockerfile                   # Configuração do container
-├── docker-compose.yml           # Orquestração dos serviços
-├── Makefile                     # Comandos principais do projeto
-├── README.md                    # Documentação principal
-├── LICENSE                      # Licença do projeto
-├── pyproject.toml               # Dependências do projeto
-├── requirements.txt             # Requisitos do projeto
-├── deploy-to-aws.sh             # Script para deploy na AWS
-├── run-local.sh                 # Script de inicialização
-├── mlflow.db                    # Banco de dados do MLflow
-├── mlartifacts/                # Artefatos do MLflow
-├── mlruns/                     # Registro de execuções do MLflow
-├── uv.lock                      # Arquivo lock de requirements (UV)
-├── docs/                       # Documentações específicas do projeto
-├── notebooks/                  # Notebooks de análise e experimentos
-├── tests/                      # Testes do projeto
-├── data/                       # Dados brutos ou processados
-├── configs/                    # Configurações de ambiente
-└── src/                        # Código-fonte
-    ├── __init__.py
-    ├── config.py              # Configurações globais
-    ├── api/                  # API de recomendação
-    ├── data/                 # Manipulação e pré-processamento
-    ├── evaluation/           # Avaliação e métricas
-    ├── features/             # Feature engineering
-    ├── predict/              # Pipeline de predição
-    ├── recommendation_model/ # Modelos de recomendação
-    ├── train/                # Pipeline de treinamento
-    ├── storage/              # Abstração de armazenamento
-
+├── Dockerfile              # Configuração de container otimizado
+├── docker-compose.yml      # Orquestração de serviços Docker
+├── run-local.sh            # Script de inicialização simplificada
+├── DEPLOY_AWS.md           # Instruções para deploy na AWS
+├── pyproject.toml          # Dependências do projeto
+├── configs/                # Configurações de ambiente
+└── src/                    # Código-fonte
+    ├── api/                # API de recomendação
+    ├── data/               # Manipulação de dados
+    ├── evaluation/         # Métricas e avaliação
+    ├── features/           # Feature engineering
+    ├── predict/            # Pipeline de predição
+    ├── recommendation_model/# Modelos de recomendação
+    ├── storage/            # Abstração de armazenamento
+    └── train/              # Pipeline de treinamento
 ```
 
 ## Endpoints e Monitoramento
@@ -205,6 +188,135 @@ Essas informações auxiliam na identificação e resolução de gargalos.
 
 ---
 
+
+
+# Setups e Rodagens em Containers
+
+
+## ✨ Principais Características
+
+- **API FastAPI:** Interface de alta performance para recomendações em tempo real
+- **MLflow Integration:** Registro e versionamento de modelos com tracking de métricas
+- **Containerização:** Deploy simplificado via Docker
+- **Otimizações de Performance:** Caching, profiling e redução de processamento redundante
+- **Suporte a Ambientes:** Configurações para desenvolvimento local e produção
+- **Suporte a Cold Start:** Tratamento para usuários novos ou com pouca informação
+- **Portabilidade AWS:** Pronto para deploy em AWS ECS Fargate
+
+## 🚀 Inicialização Rápida
+
+### Pré-requisitos
+
+- Docker
+- Docker Compose
+- Bash (para o script de inicialização)
+
+### Executar Localmente (Desenvolvimento)
+
+```bash
+# Tornar o script executável
+chmod +x run-local.sh
+
+# Iniciar todos os serviços em modo desenvolvimento (API + MLflow)
+./run-local.sh
+
+# Para reconstruir as imagens (após alterações no código)
+./run-local.sh dev full rebuild
+
+# Para ver logs após inicialização
+./run-local.sh dev full logs
+```
+
+### Executar em Modo Produção (Usando MLflow remoto)
+
+```bash
+# Configurar credenciais AWS para acesso ao S3 (opcional)
+export AWS_ACCESS_KEY_ID="sua-chave"  
+export AWS_SECRET_ACCESS_KEY="seu-secret"
+
+# Iniciar apenas a API em modo produção
+./run-local.sh prod api
+```
+
+### Opções de Inicialização
+
+```bash
+# Ver ajuda e todas as opções disponíveis
+./run-local.sh help
+
+# Exemplos comuns:
+./run-local.sh dev api      # Apenas API em modo desenvolvimento
+./run-local.sh dev mlflow   # Apenas MLflow local
+./run-local.sh prod api     # API em modo produção (MLflow remoto)
+```
+
+
+
+## 🔍 Endpoints da API
+
+- **`GET /health`**: Verifica a saúde da API
+- **`GET /info`**: Informações sobre o modelo e ambiente
+- **`POST /predict`**: Gera recomendações para um usuário
+
+### Exemplo de requisição para `/predict`:
+
+```json
+{
+  "userId": "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
+  "max_results": 5,
+  "minScore": 0.3
+}
+```
+
+## 📊 Monitoramento de Performance
+
+A API agora inclui métricas detalhadas de performance para ajudar a identificar e resolver gargalos. Ao fazer uma chamada para `/predict`, a resposta incluirá:
+
+```json
+{
+  "processing_time_ms": 123.45,
+  "timing_details": {
+    "dependencies": 0.01,
+    "prediction": 0.12,
+    "formatting": 0.01,
+    "total_ms": 123.45
+  }
+}
+```
+
+## 🐳 Configuração Docker
+
+O projeto utiliza dois arquivos principais:
+
+- **`Dockerfile`**: Container otimizado para produção
+- **`docker-compose.yml`**: Configuração de ambiente local
+
+## 🌐 Configuração de Ambientes
+
+O sistema suporta dois ambientes principais:
+
+### 1. Desenvolvimento (`dev`)
+
+- MLflow local para experimentos
+- Armazenamento local de dados
+- Taxa de amostragem reduzida para testes rápidos
+
+### 2. Produção (`prod`)
+
+- MLflow remoto para registro de modelos
+- Armazenamento S3 para dados e artefatos
+- Taxa de amostragem completa para melhor performance
+
+
+## 🚢 Deploy na AWS
+
+Para fazer o deploy do sistema na AWS ECS usando Fargate:
+
+1. Siga as instruções detalhadas em `DEPLOY_AWS.md`
+2. Automatize o processo com o script de deploy incluído
+
+
+
 ### Contribuindo
 
 Para colaborar com o projeto:
@@ -223,6 +335,7 @@ Para colaborar com o projeto:
 
 ---
 
+
 ## Referências
 
 - [LightGBM Documentation](https://lightgbm.readthedocs.io/)  
@@ -230,3 +343,4 @@ Para colaborar com o projeto:
 - [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html)  
 - [Pandas Documentation](https://pandas.pydata.org/docs/)  
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
+
