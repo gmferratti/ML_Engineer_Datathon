@@ -5,56 +5,117 @@ from contextlib import asynccontextmanager
 
 import mlflow
 import pandas as pd
-
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from mlflow.tracking import MlflowClient
 
-from predict.pipeline import predict_for_userId
-from config import get_config, USE_S3
-from storage.io import Storage
-from data.data_loader import load_data_for_prediction
-from config import configure_logger
+from src.predict.pipeline import predict_for_userId
+from src.config import get_config, USE_S3, configure_logger
+from src.storage.io import Storage
+from src.data.data_loader import load_data_for_prediction
+from src.recommendation_model.mocked_model import MockedRecommender
 
-# Configura o logger usando a função centralizada
+# Configura o logger centralizado
 logger = configure_logger("api")
 
-# Inicialização do Storage
-storage = Storage(use_s3=USE_S3)
-
-# Caches para dados comuns
+# Cache global para dados
 DATA_CACHE: Dict[str, pd.DataFrame] = {}
 
+# Função para carregar o modelo via MLflow com medição de tempo
 
-# Função lifespan
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Iniciando API de Recomendação de Notícias")
+
+def load_mlflow_model():
+    start_time = time.time()
+    model_name = get_config("MODEL_NAME", "news-recommender")
+    model_alias = get_config("MODEL_ALIAS", "champion")
     try:
-        app.state.model = load_mlflow_model()
-        app.state.prediction_data = load_prediction_data()
-        logger.info("Modelo e dados carregados com sucesso")
+        mlflow_tracking_uri = get_config("MLFLOW_TRACKING_URI")
+        if mlflow_tracking_uri:
+            mlflow.set_tracking_uri(mlflow_tracking_uri)
+        model_uri = f"models:/{model_name}@{model_alias}"
+        model = mlflow.pyfunc.load_model(model_uri)
+        load_time = time.time() - start_time
+        logger.info(f"Modelo carregado: {model_name}@{model_alias} em {load_time:.2f} segundos")
+        return model
     except Exception as e:
-        logger.error(f"Erro na inicialização: {e}")
-
-    yield  # Mantém o app rodando até ser finalizado
-
-    logger.info("Desligando API de Recomendação de Notícias")
-    DATA_CACHE.clear()
+        logger.error(f"Erro ao carregar modelo do MLflow: {e}")
+        logger.warning("Usando modelo mockado devido a erro ao carregar do MLflow.")
+        return MockedRecommender()
 
 
-# Criando a aplicação
-app = FastAPI(title="Recomendação de Notícias API", version="1.0.0", lifespan=lifespan)
+# Função para carregar os dados de predição e armazená-los em cache
 
-# Configuração de CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+def load_prediction_data() -> Dict[str, pd.DataFrame]:
+    start_time = time.time()
+    if "prediction_data" in DATA_CACHE:
+        logger.info("Usando dados em cache para predição.")
+        return DATA_CACHE["prediction_data"]
+
+    try:
+        logger.info("Carregando dados para predição (primeira vez)...")
+        storage = Storage(use_s3=USE_S3)
+        # Inclui metadados se disponível
+        data = load_data_for_prediction(storage, include_metadata=True)
+
+        # Otimização: Converter colunas numéricas para tipos mais eficientes
+        for df_name, df in data.items():
+            for col in df.columns:
+                if df[col].dtype == "float64":
+                    # Downcasting de float64 para float32
+                    df[col] = pd.to_numeric(df[col], downcast="float")
+                elif df[col].dtype == "int64":
+                    # Downcasting de int64 para int32/int16
+                    df[col] = pd.to_numeric(df[col], downcast="integer")
+
+        # Otimização: Pré-calcular estatísticas úteis
+        if "news_features" in data:
+            data["news_count"] = len(data["news_features"])
+
+        load_time = time.time() - start_time
+        logger.info(f"Dados carregados e otimizados em {load_time:.2f} segundos.")
+
+        DATA_CACHE["prediction_data"] = data
+        return data
+    except Exception as e:
+        logger.error(f"Erro ao carregar dados para predição: {e}")
+        raise e
+
+
+# Dependências para injeção via FastAPI
+
+
+def get_model():
+    if not hasattr(app.state, "model"):
+        app.state.model = load_mlflow_model()
+    return app.state.model
+
+
+def get_prediction_data():
+    if not hasattr(app.state, "prediction_data"):
+        app.state.prediction_data = load_prediction_data()
+    return app.state.prediction_data
+
+
+def get_model_version(model=Depends(get_model)) -> str:
+    try:
+        if hasattr(model, "metadata") and hasattr(model.metadata, "get"):
+            version = model.metadata.get("mlflow.runName")
+            if version:
+                return version
+        # Caso contrário, consulta o MLflow Registry via alias
+        model_name = get_config("MODEL_NAME", "news-recommender")
+        model_alias = get_config("MODEL_ALIAS", "champion")
+        client = MlflowClient()
+        model_version = client.get_model_version_by_alias(model_name, model_alias)
+        if model_version:
+            return model_version.version
+        return "unknown"
+    except Exception as e:
+        logger.error(f"Erro ao obter versão do modelo: {e}")
+        return "unknown"
+
 
 # Modelos Pydantic
 
@@ -92,6 +153,9 @@ class PredictResponse(BaseModel):
     model_version: str = Field(..., description="Versão do modelo usado")
     cold_start: bool = Field(False, description="Indica se o usuário é cold start")
     processing_time_ms: float = Field(..., description="Tempo de processamento em ms")
+    timing_details: Optional[Dict[str, float]] = Field(
+        None, description="Detalhes de tempo por etapa"
+    )
 
 
 class HealthResponse(BaseModel):
@@ -99,7 +163,11 @@ class HealthResponse(BaseModel):
     model_status: str = Field(..., description="Status do modelo")
     model_version: str = Field(..., description="Versão do modelo")
     environment: str = Field(..., description="Ambiente de execução")
+    data_loaded: bool = Field(..., description="Status dos dados")
 
+
+# Cria a aplicação FastAPI
+app = FastAPI(title="Recomendação de Notícias API", version="1.0.0")
 
 # Configuração de CORS
 app.add_middleware(
@@ -110,108 +178,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicialização do Storage
-storage = Storage(use_s3=USE_S3)
-
-# Caches para dados comuns
-DATA_CACHE: Dict[str, pd.DataFrame] = {}
+# Função lifespan para inicialização e finalização do app
 
 
-def load_mlflow_model():
-    model_name = get_config("MODEL_NAME", "news-recommender")
-    model_alias = get_config("MODEL_ALIAS", "champion")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    start_time = time.time()
+    logger.info("Iniciando API de Recomendação de Notícias")
     try:
-        mlflow_tracking_uri = get_config("MLFLOW_TRACKING_URI")
-        if mlflow_tracking_uri:
-            mlflow.set_tracking_uri(mlflow_tracking_uri)
-        model_uri = f"models:/{model_name}@{model_alias}"
-        model = mlflow.pyfunc.load_model(model_uri)
-        logger.info(f"Modelo carregado: {model_name}@{model_alias}")
-        return model
-    except Exception as e:
-        logger.error(f"Erro ao carregar modelo do MLflow: {e}")
-        from src.recommendation_model.mocked_model import MockedRecommender
-
-        logger.warning(
-            "Usando modelo mockado devido a erro ao carregar do MLflow e do armazenamento"
-        )
-        return MockedRecommender()
-
-
-def load_prediction_data() -> Dict[str, pd.DataFrame]:
-    """
-    Carrega os dados para predição e os armazena em cache.
-    Tenta realizar o merge com os metadados (title e url) caso disponíveis.
-
-    Returns:
-        Dict[str, pd.DataFrame]: Dicionário contendo os DataFrames de
-        'news_features' e 'clients_features'.
-    """
-    if "prediction_data" in DATA_CACHE:
-        return DATA_CACHE["prediction_data"]
-    try:
-        # Passa include_metadata=True para enriquecer o DataFrame de notícias
-        data = load_data_for_prediction(storage, include_metadata=True)
-        DATA_CACHE["prediction_data"] = data
-        return data
-    except Exception as e:
-        logger.error(f"Erro ao carregar dados para predição: {e}")
-        # Retorna dados mockados em caso de erro
-        news_data = pd.DataFrame(
-            {
-                "pageId": [f"news_{i}" for i in range(1, 101)],
-                "title": [f"Notícia {i}" for i in range(1, 101)],
-                "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
-            }
-        )
-
-        user_data = pd.DataFrame(
-            {
-                "userId": [f"user_{i}" for i in range(1, 21)],
-            }
-        )
-
-        return {"news_features": news_data, "clients_features": user_data}
-
-
-def get_model():
-    if not hasattr(app.state, "model"):
+        # Pré-carrega o modelo e os dados durante a inicialização
         app.state.model = load_mlflow_model()
-    return app.state.model
-
-
-def get_prediction_data():
-    if not hasattr(app.state, "prediction_data"):
         app.state.prediction_data = load_prediction_data()
-    return app.state.prediction_data
 
-
-def get_model_version(model=Depends(get_model)) -> str:
-    try:
-        # Tenta obter a versão a partir dos metadados do objeto, se disponíveis
-        if hasattr(model, "metadata") and hasattr(model.metadata, "get"):
-            version = model.metadata.get("mlflow.runName", None)
-            if version:
-                return version
-
-        # Se não estiver disponível, consulta o MLflow Registry utilizando alias
-        model_name = get_config("MODEL_NAME", "news-recommender")
-        model_alias = get_config("MODEL_ALIAS", "champion")
-        client = MlflowClient()
-
-        # Busca a versão registrada utilizando o alias (por exemplo, "champion")
-        model_version = client.get_model_version_by_alias(model_name, model_alias)
-        if model_version:
-            return model_version.version
-
-        return "unknown"
+        init_time = time.time() - start_time
+        logger.info(f"Modelo e dados carregados com sucesso em {init_time:.2f} segundos")
     except Exception as e:
-        logger.error(f"Erro ao obter versão do modelo: {e}")
-        return "unknown"
+        logger.error(f"Erro na inicialização: {e}")
+    yield
+    logger.info("Desligando API de Recomendação de Notícias")
+    DATA_CACHE.clear()
+
+
+# Aplica o handler de lifespan à aplicação
+app.router.lifespan_context = lifespan
+
+# Endpoints da API
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
-async def health_check(model=Depends(get_model)):
+async def health_check(model=Depends(get_model), data=Depends(get_prediction_data)):
     try:
         model_version = get_model_version(model)
         return HealthResponse(
@@ -219,21 +214,32 @@ async def health_check(model=Depends(get_model)):
             model_status="loaded",
             model_version=model_version,
             environment=os.getenv("ENV", "dev"),
+            data_loaded=len(data) > 0,
         )
     except Exception as e:
         logger.error(f"Erro no health check: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/predict", response_model=PredictResponse)
+# Versão otimizada da rota de predição com métricas de tempo
+
+
+@app.post("/predict", response_model=PredictResponse, tags=["Prediction"])
 def predict(request: PredictRequest):
     start_time = time.time()
+    timing = {}  # Dicionário para armazenar métricas de tempo
+
     try:
-        model = app.state.model
+        # Timer para obtenção de dependências
+        deps_start = time.time()
+        model = get_model()
         prediction_data = get_prediction_data()
         news_features_df = prediction_data["news_features"]
         clients_features_df = prediction_data["clients_features"]
+        timing["dependencies"] = time.time() - deps_start
 
+        # Timer para a predição
+        predict_start = time.time()
         rec_entries, cold_start_flag = predict_for_userId(
             userId=request.userId,
             news_features_df=news_features_df,
@@ -242,18 +248,18 @@ def predict(request: PredictRequest):
             n=request.max_results,
             score_threshold=request.min_score,
         )
+        timing["prediction"] = time.time() - predict_start
 
-        # Transforma cada recomendação em objeto NewsItem (já contém issuedDate e issuedTime)
+        # Timer para formatação da resposta
+        format_start = time.time()
         rec_items = []
         for rec in rec_entries:
             news_id = rec.get("pageId")
-            score_value = rec.get("score", 0)
             try:
-                num_score = float(score_value)
-                rounded_score = round(num_score, 2)
+                score_value = float(rec.get("score", 0))
+                rounded_score = round(score_value, 2)
             except (ValueError, TypeError):
-                rounded_score = score_value
-
+                rounded_score = rec.get("score", 0)
             rec_items.append(
                 NewsItem(
                     news_id=news_id,
@@ -264,24 +270,35 @@ def predict(request: PredictRequest):
                     issuedTime=rec.get("issuedTime"),
                 )
             )
+        timing["formatting"] = time.time() - format_start
 
         processing_time_ms = (time.time() - start_time) * 1000
+        timing["total_ms"] = processing_time_ms
+
+        # Log de métricas de performance
+        logger.info(
+            f"""Predição para {request.userId}: {len(rec_items)}
+             recomendações em {processing_time_ms:.2f}ms"""
+        )
+        logger.info(f"Métricas de tempo: {timing}")
+
         return PredictResponse(
             userId=request.userId,
             recommendations=rec_items,
             model_version=get_model_version(model),
             cold_start=cold_start_flag,
             processing_time_ms=processing_time_ms,
+            timing_details=timing,
         )
     except Exception as e:
-        logger.error(f"Erro na predição: {e}")
+        error_time = (time.time() - start_time) * 1000
+        logger.error(f"Erro na predição após {error_time:.2f}ms: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/info", tags=["Monitoring"])
 async def model_info(model=Depends(get_model)):
     try:
-        # Tenta obter os metadados do modelo
         try:
             if hasattr(model, "metadata") and hasattr(model.metadata, "to_dict"):
                 metadata = model.metadata.to_dict()
@@ -291,31 +308,28 @@ async def model_info(model=Depends(get_model)):
             logger.warning(f"Metadados não disponíveis: {e}")
             metadata = {"warning": "Metadados não disponíveis"}
 
+        # Adicionando informações sobre o cache de dados
+        cache_info = {
+            "cache_hit": "prediction_data" in DATA_CACHE,
+            "cache_size": len(DATA_CACHE),
+        }
+
+        if "prediction_data" in DATA_CACHE:
+            cache_info["news_count"] = len(DATA_CACHE["prediction_data"].get("news_features", []))
+            cache_info["clients_count"] = len(
+                DATA_CACHE["prediction_data"].get("clients_features", [])
+            )
+
         return {
             "model_version": get_model_version(model),
             "environment": os.getenv("ENV", "dev"),
             "metadata": metadata,
+            "cache": cache_info,
             "timestamp": pd.Timestamp.now().isoformat(),
         }
     except Exception as e:
         logger.error(f"Erro ao obter informações do modelo: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Iniciando API de Recomendação de Notícias")
-    try:
-        app.state.model = load_mlflow_model()
-        app.state.prediction_data = load_prediction_data()
-        logger.info("Modelo e dados carregados com sucesso")
-    except Exception as e:
-        logger.error(f"Erro na inicialização: {e}")
-
-    yield  # Mantém o app rodando até ser finalizado
-
-    logger.info("Desligando API de Recomendação de Notícias")
-    DATA_CACHE.clear()
 
 
 if __name__ == "__main__":

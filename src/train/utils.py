@@ -5,7 +5,7 @@ import warnings
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.model_selection import train_test_split
 from src.config import logger, DATA_PATH
-from storage.io import Storage
+from src.storage.io import Storage
 from typing import Dict, Any, Tuple, List, Optional
 
 
