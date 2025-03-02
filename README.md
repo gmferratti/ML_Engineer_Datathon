@@ -17,13 +17,31 @@ Este documento está localizado em **docs/** e reflete a estrutura do projeto, q
 7. [Endpoints e Monitoramento](#endpoints-e-monitoramento)
 8. [Contribuição e Notas](#contribuição-e-notas)
 9. [Referências](#referências)
+Este documento está localizado em **docs/** e reflete a estrutura do projeto, que espelha a organização dos módulos contidos na pasta *src/*.
+
+---
+
+## Índice
+
+1. [Objetivo e Contexto](#objetivo-e-contexto)
+2. [Visão Geral do Projeto](#visão-geral-do-projeto)
+3. [Fluxo de Execução](#fluxo-de-execução)
+4. [Configuração e Ambiente](#configuração-e-ambiente)
+5. [Empacotamento e Deploy](#empacotamento-e-deploy)
+6. [Estrutura do Projeto](#estrutura-do-projeto)
+7. [Endpoints e Monitoramento](#endpoints-e-monitoramento)
+8. [Contribuição e Notas](#contribuição-e-notas)
+9. [Referências](#referências)
 
 ---
 
 ## Objetivo e Contexto
+## Objetivo e Contexto
 
 Desenvolver um sistema de recomendação personalizado, com foco em prever a próxima notícia a ser lida por um usuário com base no consumo de notícias do G1. O sistema é projetado para lidar tanto com usuários com histórico consolidado quanto com aqueles em situação de *cold start*.
+Desenvolver um sistema de recomendação personalizado, com foco em prever a próxima notícia a ser lida por um usuário com base no consumo de notícias do G1. O sistema é projetado para lidar tanto com usuários com histórico consolidado quanto com aqueles em situação de *cold start*.
 
+**Integrantes:**
 **Integrantes:**
 
 - Antonio Eduardo de Oliveira Lima
@@ -37,28 +55,39 @@ Desenvolver um sistema de recomendação personalizado, com foco em prever a pr�
 ## Visão Geral do Projeto
 
 O ML_Engineer_Datathon é composto por diversos módulos que, integrados, formam um sistema completo de recomendação. Cada módulo possui documentação específica, mas aqui apresentamos um resumo dos principais componentes:
+O ML_Engineer_Datathon é composto por diversos módulos que, integrados, formam um sistema completo de recomendação. Cada módulo possui documentação específica, mas aqui apresentamos um resumo dos principais componentes:
 
 - **Feature Engineering:**  
+  Processamento dos dados brutos de notícias e usuários, extração e transformação de features e cálculo do score de engajamento (TARGET).
   Processamento dos dados brutos de notícias e usuários, extração e transformação de features e cálculo do score de engajamento (TARGET).
 
 - **Treinamento e Ranking:**  
   Utilização do **LightGBMRanker** com o objetivo *lambdarank* para treinar o modelo e gerar a ordenação dos itens, otimizando métricas como o NDCG.
+  Utilização do **LightGBMRanker** com o objetivo *lambdarank* para treinar o modelo e gerar a ordenação dos itens, otimizando métricas como o NDCG.
 
 - **API de Predição:**  
+  Implementada com FastAPI, esta API processa os inputs, trata casos de *cold start* e retorna recomendações ordenadas com os metadados relevantes.
   Implementada com FastAPI, esta API processa os inputs, trata casos de *cold start* e retorna recomendações ordenadas com os metadados relevantes.
 
 - **Avaliação:**  
   Pipeline que utiliza a métrica **NDCG@10** para mensurar a qualidade do ranking gerado pelo modelo.
+  Pipeline que utiliza a métrica **NDCG@10** para mensurar a qualidade do ranking gerado pelo modelo.
 
 ---
 
+## Fluxo de Execução
 ## Fluxo de Execução
 
 1. **Pré-processamento dos Dados:**  
    - **Notícias:** Consolidação, filtragem e extração de informações (localidade, temas, data/hora).  
    - **Usuários:** Processamento de históricos, extração de features temporais e identificação de *cold start*.  
    - **Integração:** Combinação dos dados e cálculo do TARGET com base em cliques, tempo na página, scroll, recência e outras variáveis.  
+   - **Notícias:** Consolidação, filtragem e extração de informações (localidade, temas, data/hora).  
+   - **Usuários:** Processamento de históricos, extração de features temporais e identificação de *cold start*.  
+   - **Integração:** Combinação dos dados e cálculo do TARGET com base em cliques, tempo na página, scroll, recência e outras variáveis.  
      
+     A fórmula utilizada é:
+
      A fórmula utilizada é:
 
      ```
@@ -68,28 +97,46 @@ O ML_Engineer_Datathon é composto por diversos módulos que, integrados, formam
                  - (minutesSinceLastVisit / 60)
      ```
      
+     
      Em seguida:
+     
      
      ```
      rawScore = scoreBase * (historySize / 130) * (1 / (1 + (timeGapDays / 50)))
      ```
      
      Valores negativos são ajustados, aplicando transformações como `log1p` e escalonamento via Min-Max Scaling.
+     
+     Valores negativos são ajustados, aplicando transformações como `log1p` e escalonamento via Min-Max Scaling.
 
+2. **Treinamento e Geração de Ranking:**  
+   - O modelo **LightGBMRanker** é treinado para otimizar a ordenação dos itens com base no NDCG.
+   - Durante a predição, as features são combinadas para definir a ordem das recomendações.
 2. **Treinamento e Geração de Ranking:**  
    - O modelo **LightGBMRanker** é treinado para otimizar a ordenação dos itens com base no NDCG.
    - Durante a predição, as features são combinadas para definir a ordem das recomendações.
 
 3. **API de Predição:**  
    - A API processa requisições, tratando os inputs e gerando respostas diferenciadas para casos de *cold start* ou histórico de consumo consolidado.
+   - A API processa requisições, tratando os inputs e gerando respostas diferenciadas para casos de *cold start* ou histórico de consumo consolidado.
 
 4. **Avaliação:**  
+   - Um pipeline calcula o **NDCG@10** para medir a eficácia do ranking gerado, permitindo ajustes e melhorias contínuas.
    - Um pipeline calcula o **NDCG@10** para medir a eficácia do ranking gerado, permitindo ajustes e melhorias contínuas.
 
 ---
 
 ## Configuração e Ambiente
+## Configuração e Ambiente
 
+### Principais Comandos
+
+Todos os comandos para execução dos módulos estão definidos no **Makefile**. Entre eles:
+
+- `make evaluate`
+- `make predict`
+- `make train`
+- Entre outros.
 ### Principais Comandos
 
 Todos os comandos para execução dos módulos estão definidos no **Makefile**. Entre eles:
@@ -103,13 +150,26 @@ Todos os comandos para execução dos módulos estão definidos no **Makefile**.
 
 Crie um arquivo `.env` na raiz do projeto contendo, no mínimo:
 
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto contendo, no mínimo:
+
 ```
+ENV="dev"
 ENV="dev"
 ```
 
 
 Os possíveis valores para `ENV` são `"dev"`, `"staging"` ou `"prod"`.
 
+
+Os possíveis valores para `ENV` são `"dev"`, `"staging"` ou `"prod"`.
+
+### Credenciais e Servidores
+
+- **Azure:** Configure as credenciais necessárias no `.env` para acesso aos recursos.
+- **MLflow:** Inicie o servidor do MLflow (por exemplo, com `mlflow ui`) utilizando a URI apropriada.
+- **API:** Execute a API conforme especificado no Makefile (por exemplo, via `uvicorn`).
 ### Credenciais e Servidores
 
 - **Azure:** Configure as credenciais necessárias no `.env` para acesso aos recursos.
