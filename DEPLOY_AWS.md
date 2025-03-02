@@ -9,6 +9,7 @@ Este guia simplificado mostra como fazer o deploy do sistema de recomendação u
 3. Docker instalado em sua máquina
 4. Correção do erro "No module named 'configs'" (instruções abaixo)
 
+Existe um script **deploy-to-aws.sh** na raiz do projeto que automatiza as etapas abaixo.
 
 ## Etapa 1: Obter o ID da sua conta AWS
 
