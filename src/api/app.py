@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager  # ✅ Importação correta
 
 import mlflow
@@ -58,14 +58,25 @@ app.add_middleware(
 # Modelos Pydantic
 
 class PredictRequest(BaseModel):
-    userId: str = Field(..., description="ID do usuário para recomendação")
-    max_results: int = Field(5, description="Número máximo de recomendações")
+    userId: str = Field(
+        default="4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
+        example="4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
+        description="ID do usuário para recomendação"
+    )
+    max_results: int = Field(
+        default=5,
+        example=5,
+        description="Número máximo de recomendações"
+    )
     min_score: float = Field(
-        0.3, alias="minScore", description="Score mínimo para considerar uma recomendação"
+        default=0.3,
+        alias="minScore",
+        example=0.3,
+        description="Score mínimo para considerar uma recomendação"
     )
 
     class Config:
-        populate_by_name = True
+        populate_by_field_name = True
 
 
 class NewsItem(BaseModel):
@@ -132,32 +143,36 @@ def load_mlflow_model():
 
 
 def load_prediction_data() -> Dict[str, pd.DataFrame]:
+    """
+    Carrega os dados para predição e os armazena em cache.
+    Tenta realizar o merge com os metadados (title e url) caso disponíveis.
+    
+    Returns:
+        Dict[str, pd.DataFrame]: Dicionário contendo os DataFrames de 
+        'news_features' e 'clients_features'.
+    """
     if "prediction_data" in DATA_CACHE:
         return DATA_CACHE["prediction_data"]
     try:
-        data = load_data_for_prediction(storage)
+        # Passa include_metadata=True para enriquecer o DataFrame de notícias
+        data = load_data_for_prediction(storage, include_metadata=True)
         DATA_CACHE["prediction_data"] = data
         return data
     except Exception as e:
         logger.error(f"Erro ao carregar dados para predição: {e}")
         # Retorna dados mockados em caso de erro
-        news_data = pd.DataFrame(
-            {
-                "pageId": [f"news_{i}" for i in range(1, 101)],
-                # Colunas extras para a resposta
-                "title": [f"Notícia {i}" for i in range(1, 101)],
-                "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
-            }
-        )
+        news_data = pd.DataFrame({
+            "pageId": [f"news_{i}" for i in range(1, 101)],
+            "title": [f"Notícia {i}" for i in range(1, 101)],
+            "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
+        })
 
-        user_data = pd.DataFrame(
-            {
-                "userId": [f"user_{i}" for i in range(1, 21)],
-            }
-        )
+        user_data = pd.DataFrame({
+            "userId": [f"user_{i}" for i in range(1, 21)],
+        })
 
         return {"news_features": news_data, "clients_features": user_data}
-
+    
 
 def get_model():
     if not hasattr(app.state, "model"):
@@ -185,7 +200,7 @@ def get_model_version(model=Depends(get_model)) -> str:
         model_alias = get_config("MODEL_ALIAS", "champion")
         client = MlflowClient()
         # Consulta a última versão registrada para o modelo e alias (champion)
-        latest_versions = client.get_latest_versions(model_name, stages=["None"])
+        latest_versions = client.get_latest_versions(model_name)
         if latest_versions:
             # Se houver múltiplas, pega a última (ou ajuste conforme sua lógica)
             return latest_versions[-1].version
@@ -219,8 +234,8 @@ def predict(request: PredictRequest):
         news_features_df = prediction_data["news_features"]
         clients_features_df = prediction_data["clients_features"]
 
-        # Obtém uma lista de IDs das notícias recomendadas
-        rec_ids = predict_for_userId(
+        # Obtém a lista de recomendações (cada item é um dicionário com 'pageId' e 'score')
+        rec_entries = predict_for_userId(
             userId=request.userId,
             news_features_df=news_features_df,
             clients_features_df=clients_features_df,
@@ -229,19 +244,20 @@ def predict(request: PredictRequest):
             score_threshold=request.min_score,
         )
 
-        # Transforma cada ID em um objeto NewsItem
+        # Transforma cada item em um objeto NewsItem
         rec_items = []
-        for news_id in rec_ids:
-            # Busca a notícia pelo ID
+        for entry in rec_entries:
+            news_id = entry.get("pageId")
+            score = entry.get("score", 0)
+            # Busca a notícia pelo ID para recuperar título e URL
             row = news_features_df[news_features_df["pageId"] == news_id]
             if not row.empty:
-                title = row.iloc[0].get("title") if "title" in row.iloc[0] else None
-                url = row.iloc[0].get("url") if "url" in row.iloc[0] else None
+                title = row.iloc[0].get("title")
+                url = row.iloc[0].get("url")
             else:
                 title = None
                 url = None
-            # Aqui usamos um score fixo (0.5) como exemplo; ajuste conforme necessário
-            rec_items.append(NewsItem(news_id=news_id, score=0.5, title=title, url=url))
+            rec_items.append(NewsItem(news_id=news_id, score=round(score, 2), title=title, url=url))
 
         processing_time_ms = (time.time() - start_time) * 1000
         return PredictResponse(

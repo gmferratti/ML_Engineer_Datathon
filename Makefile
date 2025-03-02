@@ -102,7 +102,6 @@ predict:
 
 run: pp_features train predict
 
-
 local_api:
 	PYTHONPATH="." uvicorn src.api.app:app --reload
 

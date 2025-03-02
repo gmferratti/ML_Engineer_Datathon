@@ -45,7 +45,7 @@ def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     news_df["theme"] = news_df["urlExtracted"].apply(_extract_theme)
     news_df["themeMain"] = news_df["theme"].str.split("/").str[0]
     news_df["themeSub"] = news_df["theme"].str.split("/").str[1]
-    
+        
     logger.info("📰 [News] Pré-processamento concluído. Linhas processadas: %d", news_df.shape[0])
     return news_df.drop(columns=NEWS_COLS_TO_DROP)
 

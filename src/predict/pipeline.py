@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 
 from src.data.data_loader import load_data_for_prediction, get_client_features, get_predicted_news
 from src.config import logger, configure_mlflow
@@ -74,7 +74,7 @@ def predict_for_userId(userId: str,
                        news_features_df: pd.DataFrame,
                        model,
                        n: int = 5,
-                       score_threshold: float = 15) -> List[str]:
+                       score_threshold: float = 15) -> List[Dict[str, Any]]:
     """
     Realiza a predição e gera recomendações para o usuário.
     """
@@ -87,7 +87,7 @@ def predict_for_userId(userId: str,
     scores = model.predict(final_input)
     logger.info("🔮 [Predict] Predição realizada para o usuário %s com %d scores.", userId, len(scores))
     
-    # Gera as recomendações
+    # Gera as recomendações: agora retorna lista de dicionários com 'pageId' e 'score'
     recommendations = get_predicted_news(scores, non_viewed, n=n, score_threshold=score_threshold)
     logger.info("🎯 [Predict] Recomendações geradas para o usuário %s.", userId)
     return recommendations
