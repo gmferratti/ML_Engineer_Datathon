@@ -334,9 +334,11 @@ def main():
             userId,
             [rec["pageId"] for rec in recommendations],
         )
-        print("🔔 Recomendações:")
+        logger.info("🔔 Recomendações:")
         for rec in recommendations:
-            print(" -", rec)
+            pageId = rec["pageId"]
+            score = rec["score"]
+            logger.info(f"{pageId} : {score}")
     else:
         logger.info("😕 [Predict] Nenhuma recomendação gerada para o usuário %s.", userId)
 
