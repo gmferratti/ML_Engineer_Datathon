@@ -16,3 +16,5 @@ e a lógica da predição de notícias separa os dfs de usuário e notícia. Tal
 1. Fazer o predict para as features globais
 2. Fazer o mecanismo de rankeamento final 
 3. No mecanismo de rankeamento final, fazer a lógica de fallback para coldStart (usar recência somente)
+
+Passar pela lógica de feature selection, mesmo que não for limar nenhuma feature
