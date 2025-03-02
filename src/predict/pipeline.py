@@ -329,11 +329,6 @@ def main():
     logger.info("⏱️ [Predict] Tempo total de predição: %.3f segundos", elapsed)
 
     if recommendations:
-        logger.info(
-            "👍 [Predict] Recomendações para o usuário %s: %s",
-            userId,
-            [rec["pageId"] for rec in recommendations],
-        )
         logger.info("🔔 Recomendações:")
         for rec in recommendations:
             pageId = rec["pageId"]
