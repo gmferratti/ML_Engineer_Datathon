@@ -1,48 +1,81 @@
-# Pipeline de Treino
+# Módulo de Treinamento
 
-Este diretório contém o pipeline de preparação dos dados de treino e salvamento dos conjuntos de features e target. Ele centraliza os passos necessários para:
+Este diretório contém os componentes para treinamento e gerenciamento de modelos de recomendação.
 
-1. **Carregar dados brutos (features finais e target).**  
-2. **Pré-processar e dividir em conjuntos de treino e teste.**  
-3. **Salvar os datasets de treino em formato Parquet.**  
-4. **Validar o carregamento dos dados salvos.**
+## Estrutura do Módulo
 
----
+- **`core.py`**: Funções centrais reutilizáveis para interação com MLflow.
+- **`pipeline.py`**: Pipeline completo de treinamento com preparação de dados e avaliação.
+- **`train.py`**: Script simplificado para experimentos rápidos de treinamento.
+- **`utils.py`**: Funções auxiliares para preparação de dados e carregamento.
 
-## Arquivos Principais
+## Uso
 
-- **`train_model.py`**  
-  - **Função `train_model()`**  
-    1. Lê o arquivo `final_feats_with_target.parquet` (contendo as features e o target).  
-    2. Chama `prepare_features(...)` para aplicar frequency encoding em colunas categóricas e dividir os dados em treino e teste.  
-    3. Salva os conjuntos de treino/teste (X_train, X_test, y_train, y_test) em formato Parquet.  
-    4. Executa `load_train_data()` ao final para garantir que os arquivos foram salvos corretamente.
+### Pipeline Completo
 
-- **`utils.py`** (importado pelo pipeline)  
-  - **Função `prepare_features(...)`**  
-    Executa a preparação dos dados, incluindo:
-    - **Frequency Encoding:** Para cada coluna categórica, calcula a frequência relativa dos valores e cria uma nova coluna com o sufixo `Freq`. Essa técnica transforma as variáveis categóricas em dados numéricos, refletindo a importância de cada categoria com base em sua ocorrência.
-    - **Train-Test Split:** Divide os dados em conjuntos de treino e teste, permitindo a avaliação da performance do modelo em dados não vistos, prevenindo overfitting e garantindo uma melhor generalização.
-  - **Função `load_train_data(...)`**  
-    Carrega os arquivos `X_train.parquet` e `y_train.parquet` gerados no passo anterior, validando o pipeline.
+O pipeline completo é ideal para treinamento em produção:
 
----
+```python
+from train import train_pipeline
 
-## Frequency Encoding
+# Executa o pipeline completo:
+# 1. Carrega e prepara dados
+# 2. Treina o modelo LightGBM
+# 3. Avalia e registra no MLflow
+train_pipeline()
+```
 
-**Frequency Encoding** é uma técnica utilizada para transformar variáveis categóricas em numéricas. Ao invés de aplicar um mapeamento arbitrário ou utilizar o one-hot encoding (que pode gerar muitas colunas), o frequency encoding substitui cada categoria pelo valor relativo de sua ocorrência no conjunto de dados. Essa abordagem traz as seguintes vantagens:
+### Treinamento Simplificado
 
-- **Redução de Dimensionalidade:** Evita a criação excessiva de colunas, o que pode ocorrer com o one-hot encoding, especialmente em variáveis com muitas categorias.
-- **Informação de Relevância:** A frequência de uma categoria pode refletir sua importância no contexto do problema, fornecendo ao modelo um sinal numérico que pode ser útil para a tomada de decisão.
+Para experimentos rápidos, use o script simplificado:
 
----
+```python
+from train import train_simple
+from src.recommendation_model.lgbm_ranker import LightGBMRanker
 
-## Importância do Train-Test Split
+# Treina um modelo mockado (padrão)
+model = train_simple(model_params={"threshold": 0.5})
 
-A divisão dos dados em conjuntos de treino e teste é uma prática fundamental em machine learning, pois:
+# Ou especifique a classe do modelo
+custom_model = train_simple(
+    model_class=LightGBMRanker,
+    model_params={"learning_rate": 0.05},
+    model_name="custom-ranker"
+)
+```
 
-- **Avaliação Realista:** Permite treinar o modelo em um conjunto de dados (treino) e avaliar sua performance em outro conjunto (teste) que nunca foi visto durante o treinamento.
-- **Prevenção de Overfitting:** Ao separar os dados, evita-se que o modelo memorize os exemplos de treinamento, promovendo uma melhor generalização para dados novos.
-- **Medição de Generalização:** Utilizar dados de teste não vistos durante o treinamento possibilita avaliar a capacidade do modelo de lidar com novos cenários, garantindo uma avaliação mais robusta.
+## Integração com MLflow
 
----
+Todos os modelos treinados são automaticamente:
+
+1. Registrados no MLflow com parâmetros e métricas
+2. Adicionados ao Model Registry com versão
+3. Marcados com alias "champion" (a versão mais recente)
+
+## Funções Utilitárias MLflow
+
+O módulo `core.py` fornece funções reutilizáveis para MLflow:
+
+```python
+from train.core import log_model_to_mlflow, load_model_from_mlflow, log_basic_metrics
+
+# Registra um modelo no MLflow
+log_model_to_mlflow(model, model_name="custom-model")
+
+# Registra métricas básicas (e opcionalmente adicionais)
+log_basic_metrics(X_train, metrics={"precision": 0.92, "recall": 0.87})
+
+# Carrega um modelo do MLflow
+loaded_model = load_model_from_mlflow(model_name="custom-model", model_alias="production")
+
+# Gera um nome de execução baseado em timestamp
+run_name = get_run_name(model_name="custom-model")
+```
+
+## Convenções de Nomenclatura
+
+Os experimentos MLflow seguem a convenção de nomenclatura `{model_name}-{YYYYmmdd-HHMMSS}`, permitindo:
+
+- Identificação clara do tipo de modelo
+- Fácil ordenação cronológica 
+- Rastreabilidade para diagnóstico de problemas

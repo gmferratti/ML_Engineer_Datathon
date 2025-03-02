@@ -1,0 +1,106 @@
+# README - Módulo de Armazenamento (storage)
+
+## Visão Geral
+
+O módulo `storage` fornece uma camada de abstração para operações de entrada e saída de dados, permitindo ao aplicativo armazenar e recuperar informações tanto no sistema de arquivos local quanto na nuvem (Amazon S3) de forma transparente.
+
+## Componentes Principais
+
+### `storage/io.py`
+
+Este é o ponto principal de entrada para usar o módulo. A classe `Storage` serve como uma "fachada" (padrão de design Facade) que simplifica o uso das operações de armazenamento. Ao inicializar `Storage`, você não precisa se preocupar com os detalhes de implementação das operações em diferentes sistemas de armazenamento.
+
+```python
+from storage.io import Storage
+
+# Cria um objeto de armazenamento baseado na configuração
+storage = Storage()
+
+# Lê um arquivo Parquet
+df = storage.read_parquet("caminho/do/arquivo.parquet")
+
+# Salva um DataFrame como CSV
+storage.write_csv(df, "caminho/de/saida.csv")
+```
+
+### `storage/base.py`
+
+Define a interface base (`BaseStorage`) que todas as implementações de armazenamento devem seguir. Esta é como uma "promessa" de que todas as classes de armazenamento terão os mesmos métodos e comportamentos básicos.
+
+### `storage/local.py`
+
+Implementa operações de armazenamento usando o sistema de arquivos local do computador. Esta classe (`LocalStorage`) é usada quando você quer salvar e ler arquivos do disco local.
+
+### `storage/s3.py`
+
+Implementa operações de armazenamento na nuvem usando Amazon S3. A classe `S3Storage` permite ler e escrever arquivos diretamente em um bucket S3, sem ter que lidar com os detalhes de implementação da API da AWS.
+
+### `storage/factory.py`
+
+Contém a função `create_storage()` que cria a implementação correta de armazenamento (local ou S3) com base nas configurações. Este é um exemplo do padrão Factory, que centraliza a lógica de criação de objetos.
+
+## Princípios de Clean Code Implementados
+
+Este módulo foi projetado seguindo vários princípios de código limpo que facilitam a manutenção e evolução do software:
+
+### 1. Responsabilidade Única (SRP)
+
+Cada classe tem apenas uma razão para mudar:
+- `LocalStorage` só se preocupa com operações no sistema de arquivos
+- `S3Storage` só se preocupa com operações no Amazon S3
+- `Storage` só se preocupa em delegar operações para a implementação apropriada
+
+### 2. Aberto/Fechado (OCP)
+
+O código está aberto para extensão, mas fechado para modificação:
+- Novas implementações de armazenamento (como Azure, Google Cloud) podem ser adicionadas sem alterar o código existente
+- Os usuários continuarão a usar a mesma interface `Storage` mesmo quando novos backends forem adicionados
+
+### 3. Substituição de Liskov (LSP)
+
+Qualquer implementação de `BaseStorage` pode ser usada onde a interface base é esperada:
+- Você pode trocar entre `LocalStorage` e `S3Storage` sem quebrar o código que os utiliza
+- Todas as implementações respeitam o contrato definido na classe base
+
+### 4. Segregação de Interface (ISP)
+
+A interface `BaseStorage` define apenas os métodos necessários para todos os backends de armazenamento, sem forçar implementações a depender de métodos que não usam.
+
+### 5. Inversão de Dependência (DIP)
+
+O código de alto nível depende de abstrações, não de implementações concretas:
+- A classe `Storage` depende da interface `BaseStorage`, não das implementações específicas
+- As configurações são injetadas, não codificadas rigidamente
+
+### 6. Uso de Padrões de Design
+
+- **Factory Method**: Centraliza a criação de objetos em `create_storage()`
+- **Facade**: A classe `Storage` simplifica a interface para os clientes
+- **Strategy**: Diferentes algoritmos de armazenamento podem ser trocados em tempo de execução
+
+## Como Usar
+
+```python
+from storage.io import Storage
+
+# Cria um objeto Storage que usará o sistema de arquivos local ou S3 
+# dependendo da configuração definida em config.py
+storage = Storage()
+
+# Para forçar um backend específico, independente da configuração
+storage_local = Storage(use_s3=False)
+storage_s3 = Storage(use_s3=True)
+
+# Operações comuns
+df = storage.read_csv("dados/raw/entrada.csv")
+storage.write_parquet(df, "dados/processed/saida.parquet")
+
+# Verificar se um arquivo existe
+if storage.exists("dados/modelo.pkl"):
+    model = storage.load_pickle("dados/modelo.pkl")
+
+# Listar arquivos em um diretório
+csv_files = storage.list_files("dados/raw", pattern="*.csv")
+```
+
+Este design simples e flexível permite que seu código funcione tanto em ambiente de desenvolvimento local quanto em produção na nuvem, sem precisar modificar a lógica de negócios.

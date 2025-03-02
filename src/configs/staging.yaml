@@ -1,2 +1,29 @@
-MLFLOW_TRACKING_URI: "http://staging-mlflow-server:5000"
-SAMPLING_RATE: 0.1
+# MLflow configuration
+MLFLOW_TRACKING_URI: "http://35.173.177.71:5000"
+MLFLOW_REGISTRY_URI: "http://35.173.177.71:5000"
+MLFLOW_ARTIFACT_ROOT: "s3://mlflow-datathon-grupo57" 
+EXPERIMENT: "news-recommendation-staging"
+MODEL_NAME: "news-recommender-staging"
+
+# API configuration
+API_HOST: "0.0.0.0"
+API_PORT: 8000
+MODEL_ALIAS: "champion"
+
+# Storage configuration
+USE_S3: true
+S3_BUCKET: "fiap-mleng-datathon-data-grupo57"
+LOCAL_DATA_PATH: "data/"
+
+# Features configuration
+COLD_START_THRESHOLD: 5
+SAMPLE_RATE: 1.0  # Em produção, usar todo o dataset
+SCALING_RANGE: 100
+NEWS_DIRECTORY: "challenge-webmedia-e-globo-2023/itens/itens"
+USERS_DIRECTORY: "challenge-webmedia-e-globo-2023/files/treino"
+
+
+# Model hyperparameters
+MODEL_PARAMS:
+  threshold: 0.5
+  top_k: 5

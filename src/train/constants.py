@@ -1,11 +1,10 @@
-EXPECTED_COLUMNS = [
-    "isWeekend",
+CLIENT_FEATURES = ["userTypeFreq", "isWeekend", "dayPeriodFreq"]
+
+NEWS_FEATURES = [
     "relLocalState",
     "relLocalRegion",
     "relThemeMain",
     "relThemeSub",
-    "userTypeFreq",
-    "dayPeriodFreq",
     "localStateFreq",
     "localRegionFreq",
     "themeMainFreq",

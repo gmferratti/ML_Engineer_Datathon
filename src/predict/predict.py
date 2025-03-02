@@ -1,71 +1,79 @@
-
-
 import os
 import pandas as pd
-
-from data.data_loader import get_client_features, get_non_viewed_news, get_predicted_news
 from typing import List
+from src.data.data_loader import get_client_features, get_predicted_news
+from src.config import DATA_PATH, logger, USE_S3, configure_mlflow
+from src.train.core import load_model_from_mlflow
+from storage.io import Storage
 
-from config import FLAG_REMOTE, LOCAL_DATA_PATH, REMOTE_DATA_PATH, logger
-from constants import CLIENT_FEATURES, NEWS_FEATURES
+
+def prepare_for_prediction() -> str:
+    """
+    Lê o dataframe completo de features e o salva na pasta de predição.
+
+    Returns:
+        str: Caminho completo do arquivo salvo.
+    """
+    storage = Storage(use_s3=USE_S3)
+    full_path = os.path.join(DATA_PATH, "train", "X_train_full.parquet")
+    logger.info("Lendo features de %s", full_path)
+    df = storage.read_parquet(full_path)
+    pred_dir = os.path.join(DATA_PATH, "predict")
+    if not os.path.exists(pred_dir):
+        os.makedirs(pred_dir, exist_ok=True)
+    save_path = os.path.join(pred_dir, "X_train_full.parquet")
+    storage.write_parquet(df, save_path)
+    logger.info("Arquivo salvo em %s", save_path)
+    return save_path
 
 
-def prepare_for_prediction():
-    # Define o caminho base dos dados conforme o ambiente
-    data_path = REMOTE_DATA_PATH if FLAG_REMOTE else LOCAL_DATA_PATH
-    logger.info("Utilizando armazenamento %s.", "remoto" if FLAG_REMOTE else "local")
-    
-    # Caminho completo para o arquivo de features
-    file_path = os.path.join(data_path, "train", "X_train.parquet")
-    logger.info("Lendo arquivo de features: %s", file_path)
-    
-    # Carrega o DataFrame de features
-    df = pd.read_parquet(file_path)
-    
-    # Separa o DataFrame em dois: news_features_df e clients_features_df
-    news_features_df = df[['historyId', 'pageId'] + NEWS_FEATURES].copy()
-    clients_features_df = df[['userId', 'pageId'] + CLIENT_FEATURES].copy()
-    
-    # Define o diretório de saída para as predições
-    predict_path = os.path.join(data_path, "predict")
-    os.makedirs(predict_path, exist_ok=True)
-    logger.info("Salvando arquivos na pasta: %s", predict_path)
-    
-    # Caminhos completos para salvar os arquivos
-    news_save_path = os.path.join(predict_path, "news_features_df.parquet")
-    clients_save_path = os.path.join(predict_path, "clients_features_df.parquet")
-    
-    # Salva os DataFrames em formato Parquet
-    news_features_df.to_parquet(news_save_path)
-    clients_features_df.to_parquet(clients_save_path)
-    logger.info("Arquivos salvos: %s e %s", news_save_path, clients_save_path)
+def predict_for_userId(userId: str, full_df: pd.DataFrame, model,
+                       n: int = 5, score_threshold: float = 15) -> List[str]:
+    """
+    Gera recomendações para um usuário com base no dataframe completo.
 
-def predict_for_userId(
-    userId: str,
-    news_features_df: pd.DataFrame,
-    clients_features_df: pd.DataFrame,
-    model,
-    n: int = 5,
-    score_threshold: float = 0.3,
-) -> List[str]:
-    # Obtém as features do cliente e converte para DataFrame (já que get_client_features retorna um dicionário)
-    client_features = pd.DataFrame([get_client_features(userId, clients_features_df)])
-    
-    # Obtém as notícias que o usuário ainda não visualizou
-    non_viewed_news = get_non_viewed_news(userId, news_features_df, clients_features_df)
-    
-    # Se não houver notícias disponíveis, retorna uma lista vazia
-    if non_viewed_news.empty:
+    Args:
+        userId (str): ID do usuário.
+        full_df (pd.DataFrame): DataFrame completo com features.
+        model: Modelo treinado.
+        n (int, optional): Máximo de recomendações.
+        score_threshold (float, optional): Score mínimo.
+
+    Returns:
+        List[str]: IDs das notícias recomendadas.
+    """
+    seen = full_df.loc[full_df["userId"] == userId, "pageId"].unique()
+    non_viewed = full_df[~full_df["pageId"].isin(seen)].copy()
+    if non_viewed.empty:
         logger.warning("Nenhuma notícia disponível para recomendar.")
         return []
-    
-    # Cria o input do modelo: combina as features das notícias com as features do usuário
-    model_input = non_viewed_news.assign(userId=userId).merge(
-        client_features.drop(columns=["userId"]), how="cross", suffixes=("_news", "_user")
-    )
-    
-    # Calcula os scores usando o modelo
+    client_feat = get_client_features(userId, full_df)
+    client_df = pd.DataFrame([client_feat])
+    model_input = non_viewed.assign(userId=userId).merge(
+        client_df.drop(columns=["userId"]), how="cross")
     scores = model.predict(model_input)
-    
-    # Retorna as notícias recomendadas aplicando o filtro de score
-    return get_predicted_news(scores, non_viewed_news, n=n, score_threshold=score_threshold)
+    return get_predicted_news(scores, non_viewed, n=n,
+                              score_threshold=score_threshold)
+
+
+def main():
+    logger.info("Preparando dados para predição...")
+    prepare_for_prediction()
+    configure_mlflow()
+    pred_path = os.path.join(DATA_PATH, "predict", "X_train_full.parquet")
+    storage = Storage(use_s3=USE_S3)
+    full_df = storage.read_parquet(pred_path)
+    model = load_model_from_mlflow()
+    userId = "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297"
+    logger.info("Predizendo para o usuário: %s", userId)
+    recs = predict_for_userId(userId, full_df, model)
+    logger.info("Recomendações para %s: %s", userId, recs)
+    if recs:
+        for r in recs:
+            print(r)
+    else:
+        logger.info("Nenhuma recomendação gerada.")
+
+
+if __name__ == "__main__":
+    main()

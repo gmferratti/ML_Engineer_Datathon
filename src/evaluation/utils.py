@@ -1,16 +1,17 @@
 from typing import Dict
-from constants import CLIENT_FEATURES, NEWS_FEATURES
+from src.train.constants import CLIENT_FEATURES, NEWS_FEATURES
 import pandas as pd
-from recomendation_model.base_model import BaseRecommender
+import numpy as np
+from src.recommendation_model.base_model import BaseRecommender
+from sklearn.metrics import ndcg_score
 
 
 def evaluate_model(
-    model: BaseRecommender, 
-    evaluation_data: pd.DataFrame, 
-    k_ndcg: int = 10) -> Dict:
+    model: BaseRecommender, evaluation_data: pd.DataFrame, k_ndcg: int = 10
+) -> Dict:
     """
-    Avalia o modelo de recomendação usando NDCG@k, 
-    considerando que evaluation_data possui colunas de features 
+    Avalia o modelo de recomendação usando NDCG@k,
+    considerando que evaluation_data possui colunas de features
     e uma coluna 'TARGET' com a relevância.
 
     Args:
@@ -24,20 +25,21 @@ def evaluate_model(
     # Separar X (features) e y (target)
     X = evaluation_data.drop(columns=["TARGET"])
     y_true = evaluation_data["TARGET"].values
-    
+
     # Converter para numpy arrays
     client_feats = X[CLIENT_FEATURES].values
     news_feats = X[NEWS_FEATURES].values
 
     # Obter predições (scores) do modelo
-    y_pred = model.predict({
-        "client_features": client_feats,
-        "news_features": news_feats
-    })
+    y_pred = model.predict({"client_features": client_feats, "news_features": news_feats})
 
-    ndcg_val = ndcg_score([y_true], [y_pred], k=k_ndcg)
+    # Verifica que real e predito têm o mesmo tamanho
+    assert len(y_true) == len(
+        y_pred
+    ), f"Dimensão incompatível: y_true tem {len(y_true)}, y_pred tem {len(y_pred)}"
 
-    metrics = {
-        f"NDCG@{k_ndcg}": ndcg_val
-    }
+    # Calcula o score usando objetos array-like
+    ndcg_val = ndcg_score(np.array([y_true]), np.array([y_pred]), k=k_ndcg)
+
+    metrics = {f"NDCG_{k_ndcg}": ndcg_val}
     return metrics

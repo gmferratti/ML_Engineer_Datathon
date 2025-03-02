@@ -1,113 +1,134 @@
 import os
 import pandas as pd
-import pickle
-from utils import prepare_features, load_train_data
-from config import logger
-from recomendation_model.base_model import LightGBMRanker
+import mlflow
+from typing import Dict, Any, Tuple
+from src.train.utils import prepare_features, load_train_data
+from src.train.core import (
+    log_model_to_mlflow,
+    log_encoder_mapping,
+    log_basic_metrics,
+    get_run_name,
+)
+from src.config import logger, DATA_PATH, USE_S3, configure_mlflow, get_config
+from src.recommendation_model.lgbm_ranker import LightGBMRanker
+from storage.io import Storage
 
-def save_dataframe_as_parquet(df: pd.DataFrame, file_path: str) -> None:
+
+def load_features(storage: Storage) -> pd.DataFrame:
     """
-    Cria o diretório (caso não exista) e salva o DataFrame em formato Parquet.
-    
+    Carrega o dataframe final de features e target.
+
     Args:
-        df (pd.DataFrame): DataFrame a ser salvo.
-        file_path (str): Caminho completo para salvar o arquivo Parquet.
+        storage (Storage): Instância para I/O.
+
+    Returns:
+        pd.DataFrame: Dados carregados.
     """
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    df.to_parquet(file_path)
-    rel_path = os.path.relpath(file_path)
-    logger.info("Arquivo salvo: %s", rel_path)
+    file_path = os.path.join(DATA_PATH, "features", "final_feats_with_target.parquet")
+    logger.info("Carregando features de %s...", file_path)
+    df = storage.read_parquet(file_path)
+    logger.info("Shape: %s", df.shape)
+    return df
+
+
+def prepare_and_save_train_data(storage: Storage, final_feats: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Prepara e salva os dados de treino.
+
+    Args:
+        storage (Storage): Instância para I/O.
+        final_feats (pd.DataFrame): Dados com features e target.
+
+    Returns:
+        dict: Dados preparados.
+    """
+    logger.info("Preparando dados de treino...")
+    trusted = prepare_features(final_feats)
+    train_dir = os.path.join(DATA_PATH, "train")
+    for key, data in trusted.items():
+        if key == "encoder_mapping":
+            continue
+        if not isinstance(data, pd.DataFrame):
+            data = pd.DataFrame(data)
+        file_path = os.path.join(train_dir, f"{key}.parquet")
+        logger.info("Salvando '%s' em %s, shape: %s", key, file_path, data.shape)
+        storage.write_parquet(data, file_path)
+    logger.info("Pipeline de features concluído!")
+    return trusted
+
+
+def validate_and_load_train_data(
+    storage: Storage,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Valida e carrega os dados de treino.
+
+    Args:
+        storage (Storage): Instância para I/O.
+
+    Returns:
+        tuple: (X_train, y_train, group_train)
+    """
+    logger.info("Validando dados de treino...")
+    X_val, y_val = load_train_data(storage)
+    logger.info("X_train: %s, y_train: %s", X_val.shape, y_val.shape)
+    train_dir = os.path.join(DATA_PATH, "train")
+    x_path = os.path.join(train_dir, "X_train.parquet")
+    y_path = os.path.join(train_dir, "y_train.parquet")
+    group_path = os.path.join(train_dir, "group_train.parquet")
+    X_train = storage.read_parquet(x_path)
+    y_train = storage.read_parquet(y_path)
+    group_train = storage.read_parquet(group_path)
+    logger.info(
+        "Dados: X_train %s, y_train %s, group_train %s",
+        X_train.shape,
+        y_train.shape,
+        group_train.shape,
+    )
+    return X_train, y_train, group_train
+
+
+def train_and_log_model(
+    X_train: pd.DataFrame,
+    y_train: pd.DataFrame,
+    group_train: pd.DataFrame,
+    trusted_data: Dict[str, Any],
+) -> None:
+    """
+    Treina o modelo LightGBMRanker e registra no MLflow.
+
+    Args:
+        X_train (pd.DataFrame): Features de treino.
+        y_train (pd.DataFrame): Target de treino.
+        group_train (pd.DataFrame): Grupos de treino.
+        trusted_data (dict): Dados processados.
+    """
+    params = get_config("MODEL_PARAMS", {})
+    params.pop("threshold", None)  # removendo threshold pois o modelo é de ranking
+    model_name = get_config("MODEL_NAME", "news-recommender")
+    run_name = get_run_name(model_name)
+    with mlflow.start_run(run_name=run_name) as run:
+        logger.info("Treinando LightGBMRanker...")
+        model = LightGBMRanker(params=params)
+        model.train(X_train.values, y_train.values.ravel(), group_train["groupCount"].values)
+        mlflow.log_params(params)
+        log_encoder_mapping(trusted_data)
+        log_basic_metrics(X_train)
+        log_model_to_mlflow(model, model_name, run.info.run_id)
+        logger.info("Treinamento concluído. Run ID: %s", run.info.run_id)
 
 
 def train_model() -> None:
     """
-    Pipeline de treinamento do modelo:
-      1. Carrega o DataFrame final com features e target.
-      2. Prepara os conjuntos de treino e teste (incluindo split e remoção do cold_start)
-         e salva os dados em formato Parquet.
-      3. Valida o carregamento dos dados.
-      4. Treina o modelo LightGBMRanker e salva o modelo treinado em formato pickle.
-      5. Valida o salvamento do modelo recarregando o arquivo pickle.
+    Pipeline principal de treinamento.
     """
-    # 1. Carregar features finais com target
-    final_feats_file = os.path.join("data", "features", "final_feats_with_target.parquet")
-    logger.info("Carregando features finais com target de %s...", final_feats_file)
-    final_feats = pd.read_parquet(final_feats_file)
-    logger.info("Shape do dataframe final_feats (antes do split e remoção do cold_start): %s", final_feats.shape)
+    configure_mlflow()
+    storage = Storage(use_s3=USE_S3)
+    final_feats = load_features(storage)
+    trusted = prepare_and_save_train_data(storage, final_feats)
+    X_train, y_train, group_train = validate_and_load_train_data(storage)
+    train_and_log_model(X_train, y_train, group_train, trusted)
 
-    # 2. Preparar conjuntos de treino e teste (split e remoção do cold_start)
-    logger.info("Preparando os conjuntos de treino e teste (split e remoção do cold_start)...")
-    trusted_data = prepare_features(final_feats)
-
-    # Log dos shapes após o split e remoção do cold_start para cada item em trusted_data
-    if isinstance(trusted_data, dict):
-        for key, data in trusted_data.items():
-            try:
-                # Converter para DataFrame se necessário para garantir a obtenção do shape
-                data_df = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
-                logger.info("Shape do dataframe '%s' (após split e remoção do cold_start): %s", key, data_df.shape)
-            except Exception as error:
-                logger.warning("Não foi possível determinar o shape de '%s': %s", key, error)
-
-    # Criar diretório base para salvar os dados de treino
-    train_base_path = os.path.join("data", "train")
-    os.makedirs(train_base_path, exist_ok=True)
-
-    # Salvar cada item de trusted_data em formato Parquet
-    for key, data in trusted_data.items():
-        # Converter para DataFrame, se necessário
-        if key == "encoder_mapping" and isinstance(data, dict):
-            data = pd.DataFrame(data)
-        elif not isinstance(data, pd.DataFrame):
-            try:
-                data = pd.DataFrame(data)
-            except Exception as error:
-                logger.warning("Não foi possível converter '%s' para DataFrame: %s", key, error)
-                continue
-
-        file_name = f"{key}.parquet"
-        file_path = os.path.join(train_base_path, file_name)
-        logger.info("Salvando '%s' em %s com shape: %s", key, file_path, data.shape)
-        save_dataframe_as_parquet(data, file_path)
-
-    logger.info("Pipeline de preparação de features concluído!")
-
-    # 3. Validar o carregamento dos dados de treino
-    logger.info("Validando o carregamento dos dados...")
-    X_train_val, y_train_val = load_train_data()
-    logger.info("Dados carregados: X_train shape: %s, y_train shape: %s", X_train_val.shape, y_train_val.shape)
-
-    # 4. Carregar os dados para treino do modelo
-    logger.info("Carregando dados para treino do modelo...")
-    x_train_path = os.path.join(train_base_path, "X_train.parquet")
-    y_train_path = os.path.join(train_base_path, "y_train.parquet")
-    group_train_path = os.path.join(train_base_path, "group_train.parquet")
-    
-    X_train = pd.read_parquet(x_train_path)
-    y_train = pd.read_parquet(y_train_path)
-    group_train = pd.read_parquet(group_train_path)
-    logger.info("Dados para treino carregados: X_train shape: %s, y_train shape: %s, group_train shape: %s",
-                X_train.shape, y_train.shape, group_train.shape)
-
-    # 5. Treinar o modelo LightGBMRanker
-    logger.info("Treinando o modelo LightGBMRanker...")
-    model = LightGBMRanker()
-    model.train(
-        X_train.values,
-        y_train.values.ravel(),
-        group_train["groupCount"].values
-    )
-
-    # Salvar o modelo treinado em um arquivo pickle na pasta data/train
-    model_path = os.path.join(train_base_path, "lightgbm_ranker.pkl")
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
-    logger.info("Modelo treinado e salvo em '%s'", model_path)
-
-    # 6. Validar o salvamento recarregando o modelo
-    with open(model_path, "rb") as f:
-        model_loaded = pickle.load(f)
-    logger.info("Modelo carregado com sucesso!")
 
 if __name__ == "__main__":
     train_model()

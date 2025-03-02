@@ -1,57 +1,42 @@
 import mlflow
 from typing import Dict
+from src.config import configure_mlflow, get_config
+from src.recommendation_model.lgbm_ranker import LightGBMRanker
+from src.train.core import log_model_to_mlflow, log_basic_metrics, get_run_name
+from src.evaluation.utils import evaluate_model
+from src.train.utils import load_train_data
+from src.data.data_loader import get_evaluation_data
 
-from config import configure_mlflow, get_config
-from recomendation_model.mocked_model import MockedRecommender, MLflowWrapper
-from recomendation_model.base_model import BaseRecommender
-from features.schemas import get_model_signature, create_mock_input_example
-from evaluation.utils import evaluate_model
-from train.utils import load_train_data
-from data.data_loader import get_evaluation_data
 
-def train_model(model_params : Dict = {}) -> BaseRecommender:
-    """Treina o modelo de recomendacao.
+def train_model(model_params: Dict = {}) -> LightGBMRanker:
+    """
+    Treina o modelo de recomendação.
 
     Args:
-        model_params (Dict): Parametros do modelo.
+        model_params (dict, optional): Parâmetros do modelo.
 
     Returns:
-        BaseRecommender: Modelo treinado.
+        LightGBMRanker: Modelo treinado.
     """
+    if model_params is None:
+        model_params = get_config("MODEL_PARAMS", {})
+    model_name = get_config("MODEL_NAME", "news-recommender")
     X_train, y_train = load_train_data()
-    evaluation_data = get_evaluation_data()
-
-    input_example = create_mock_input_example()
-
-    # Inicia um novo experimento
-    with mlflow.start_run() as run:
-        # Cria e treina o modelo
-        model = MockedRecommender(**model_params)
+    eval_data = get_evaluation_data()
+    run_name = get_run_name(model_name)
+    with mlflow.start_run(run_name=run_name) as run:
+        model = LightGBMRanker(**model_params)
         model.train(X_train, y_train)
-
-        # Loga parâmetros
         mlflow.log_params(model_params)
+        metrics = evaluate_model(model, eval_data)
+        log_basic_metrics(X_train, metrics)
+        log_model_to_mlflow(model, model_name, run.info.run_id)
+        print(f"Modelo treinado. Run ID: {run.info.run_id}")
 
-        # Loga métricas
-        metrics = evaluate_model(model, evaluation_data)
-        mlflow.log_metrics(metrics)
-
-        # Salva o modelo usando o wrapper e a signature
-        wrapper = MLflowWrapper(model)
-        mlflow.pyfunc.log_model(
-            artifact_path=get_config('MODEL_NAME'),
-            python_model=wrapper,
-            signature=get_model_signature(),
-            input_example=input_example
-        )
-
-        # Guarda o run_id
-        run_id = run.info.run_id
-        print(f"Modelo treinado com sucesso. Run ID: {run_id}")
+    return model
 
 
 if __name__ == "__main__":
     configure_mlflow()
-
-    model_params = get_config('MODEL_PARAMS')
-    trained_model = train_model(model_params=model_params)
+    params = get_config("MODEL_PARAMS", {})
+    _ = train_model(model_params=params)
