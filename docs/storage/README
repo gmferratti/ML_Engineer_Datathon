@@ -11,7 +11,7 @@ O módulo `storage` fornece uma camada de abstração para operações de entrad
 Este é o ponto principal de entrada para usar o módulo. A classe `Storage` serve como uma "fachada" (padrão de design Facade) que simplifica o uso das operações de armazenamento. Ao inicializar `Storage`, você não precisa se preocupar com os detalhes de implementação das operações em diferentes sistemas de armazenamento.
 
 ```python
-from src.storage.io import Storage
+from storage.io import Storage
 
 # Cria um objeto de armazenamento baseado na configuração
 storage = Storage()
@@ -81,7 +81,7 @@ O código de alto nível depende de abstrações, não de implementações concr
 ## Como Usar
 
 ```python
-from src.storage.io import Storage
+from storage.io import Storage
 
 # Cria um objeto Storage que usará o sistema de arquivos local ou S3 
 # dependendo da configuração definida em config.py

@@ -11,7 +11,9 @@ from src.config import logger, NEWS_DIRECTORY
 
 def preprocess_news(selected_pageIds: pd.Series) -> pd.DataFrame:
     """
-    Pré-processa dados de notícias, filtrando por pageIds e extraindo informações relevantes da URL.
+    Pré-processa dados de notícias.
+
+    Filtrando por pageIds e extraindo informações relevantes da URL.
 
     Args:
         selected_pageIds (pd.Series): Lista de pageIds a serem processados.

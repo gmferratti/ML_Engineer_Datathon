@@ -1,8 +1,8 @@
 from typing import Optional
-from config import logger, get_config
-from storage.base import BaseStorage
-from storage.local import LocalStorage
-from storage.s3 import S3Storage
+from src.config import logger, get_config
+from .base import BaseStorage
+from .local import LocalStorage
+from .s3 import S3Storage
 
 
 def create_storage(use_s3: Optional[bool] = None, s3_bucket: Optional[str] = None) -> BaseStorage:

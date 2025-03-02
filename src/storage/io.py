@@ -1,8 +1,8 @@
 from typing import Optional, List, Any
 import pandas as pd
-from config import get_config, USE_S3
-from storage.base import BaseStorage
-from storage.factory import create_storage
+from src.config import get_config, USE_S3
+from .base import BaseStorage
+from .factory import create_storage
 
 
 class Storage(BaseStorage):

@@ -2,17 +2,29 @@
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
-Último desafio FIAP para a conclusão da pós em Machine Learning Engineering.
+Este documento está localizado em **docs/** e reflete a estrutura do projeto, que espelha a organização dos módulos contidos na pasta *src/*.
 
 ---
 
-## Objetivo
+## Índice
 
-Desenvolver um sistema de recomendação personalizado baseado no consumo de notícias do G1, com o objetivo de prever qual será a próxima notícia lida por um usuário. O sistema é capaz de lidar com diversos perfis de usuários – desde aqueles com amplo histórico de consumo até os que estão acessando o site pela primeira vez (cold start).
+1. [Objetivo e Contexto](#objetivo-e-contexto)
+2. [Visão Geral do Projeto](#visão-geral-do-projeto)
+3. [Fluxo de Execução](#fluxo-de-execução)
+4. [Configuração e Ambiente](#configuração-e-ambiente)
+5. [Empacotamento e Deploy](#empacotamento-e-deploy)
+6. [Estrutura do Projeto](#estrutura-do-projeto)
+7. [Endpoints e Monitoramento](#endpoints-e-monitoramento)
+8. [Contribuição e Notas](#contribuição-e-notas)
+9. [Referências](#referências)
 
 ---
 
-## Integrantes
+## Objetivo e Contexto
+
+Desenvolver um sistema de recomendação personalizado, com foco em prever a próxima notícia a ser lida por um usuário com base no consumo de notícias do G1. O sistema é projetado para lidar tanto com usuários com histórico consolidado quanto com aqueles em situação de *cold start*.
+
+**Integrantes:**
 
 - Antonio Eduardo de Oliveira Lima
 - Gustavo Mendonça Ferratti
@@ -24,103 +36,179 @@ Desenvolver um sistema de recomendação personalizado baseado no consumo de not
 
 ## Visão Geral do Projeto
 
-O projeto ML_Engineer_Datathon é composto por vários módulos que, juntos, formam um sistema completo de recomendação. Cada módulo possui sua própria documentação detalhada e é responsável por uma parte específica do fluxo. Os módulos principais são:
+O ML_Engineer_Datathon é composto por diversos módulos que, integrados, formam um sistema completo de recomendação. Cada módulo possui documentação específica, mas aqui apresentamos um resumo dos principais componentes:
 
 - **Feature Engineering:**  
-  Processa os dados brutos (notícias e usuários), extrai e transforma as features e calcula o score de engajamento (TARGET).
+  Processamento dos dados brutos de notícias e usuários, extração e transformação de features e cálculo do score de engajamento (TARGET).
 
 - **Treinamento e Ranking:**  
-  Utiliza o **LightGBMRanker** – um modelo de ranking baseado no LightGBM com o objetivo **lambdarank** – para treinar o modelo e gerar uma ordenação dos itens. O treinamento otimiza métricas de ranking, como o NDCG.
+  Utilização do **LightGBMRanker** com o objetivo *lambdarank* para treinar o modelo e gerar a ordenação dos itens, otimizando métricas como o NDCG.
 
 - **API de Predição:**  
-  Disponibiliza uma API (via FastAPI) para realizar predições em tempo real. A API carrega os dados pré-processados e o modelo treinado, trata os inputs (inclusive para casos de cold start) e retorna as recomendações ordenadas com metadados.
+  Implementada com FastAPI, esta API processa os inputs, trata casos de *cold start* e retorna recomendações ordenadas com os metadados relevantes.
 
 - **Avaliação:**  
-  Um pipeline de avaliação utiliza a métrica **NDCG@10** para medir a qualidade do ranking gerado pelo modelo, comparando os scores preditos com os valores reais de engajamento.
+  Pipeline que utiliza a métrica **NDCG@10** para mensurar a qualidade do ranking gerado pelo modelo.
 
 ---
 
-## Fluxo Geral
+## Fluxo de Execução
 
 1. **Pré-processamento dos Dados:**  
-   - **Notícias:** Concatenação, filtragem e extração de informações (localidade, temas, data/hora de publicação).
-   - **Usuários:** Processamento de históricos, extração de features temporais e definição da flag `coldStart`.
-   - **Mix de Features:** Combinação dos dados de notícias e usuários, cálculo de gaps temporais e proporções por categoria.
-   - **Cálculo do TARGET:** Cálculo do score de engajamento usando métricas como cliques, tempo na página, scroll, recência, tamanho do histórico e gap temporal.  
+   - **Notícias:** Consolidação, filtragem e extração de informações (localidade, temas, data/hora).  
+   - **Usuários:** Processamento de históricos, extração de features temporais e identificação de *cold start*.  
+   - **Integração:** Combinação dos dados e cálculo do TARGET com base em cliques, tempo na página, scroll, recência e outras variáveis.  
      
-     A fórmula geral é:
+     A fórmula utilizada é:
+
      ```
      scoreBase = numberOfClicksHistory 
                  + 1.5 * (timeOnPageHistory / 1000)
                  + scrollPercentageHistory 
                  - (minutesSinceLastVisit / 60)
      ```
+     
      Em seguida:
+     
      ```
      rawScore = scoreBase * (historySize / 130) * (1 / (1 + (timeGapDays / 50)))
      ```
-     Valores negativos são ajustados para zero, aplicando `log1p`, escalonamento via Min-Max Scaling e arredondamento para gerar o TARGET final.
+     
+     Valores negativos são ajustados, aplicando transformações como `log1p` e escalonamento via Min-Max Scaling.
 
-2. **Treinamento e Ranking:**  
-   - O **LightGBMRanker** é treinado com os dados processados utilizando o objetivo **lambdarank**, que otimiza a ordenação dos itens com base em métricas de ranking como o NDCG.
-   - Durante a predição, as features dos clientes e das notícias são combinadas para gerar scores, que determinam a ordem dos itens recomendados.
+2. **Treinamento e Geração de Ranking:**  
+   - O modelo **LightGBMRanker** é treinado para otimizar a ordenação dos itens com base no NDCG.
+   - Durante a predição, as features são combinadas para definir a ordem das recomendações.
 
 3. **API de Predição:**  
-   - A API, desenvolvida com FastAPI, recebe requisições contendo parâmetros como `userId`, `max_results` e `minScore`.
-   - Caso o usuário não seja encontrado (indicando cold start), a API retorna as notícias mais recentes com score definido como "desconhecido", juntamente com metadados (título, URL, issuedDate e issuedTime).
-   - Caso o usuário possua histórico, o modelo gera scores que determinam o ranking final das notícias.
+   - A API processa requisições, tratando os inputs e gerando respostas diferenciadas para casos de *cold start* ou histórico de consumo consolidado.
 
 4. **Avaliação:**  
-   - Um pipeline de avaliação calcula o **NDCG@10** para medir a qualidade do ranking.  
-     - **NDCG@10:** É uma métrica que avalia a ordenação dos itens. Um valor de 1 indica uma ordenação perfeita, enquanto valores próximos de 0 indicam uma ordenação ruim.
+   - Um pipeline calcula o **NDCG@10** para medir a eficácia do ranking gerado, permitindo ajustes e melhorias contínuas.
 
 ---
 
-## Configuração Inicial e Ambiente
+## Configuração e Ambiente
 
-- **Principais Comandos:**  
-  Todos os comandos principais para executar os módulos do projeto estão definidos no **Makefile**. Consulte o Makefile para comandos como:
-  - `make evaluate`
-  - `make predict`
-  - `make train`
-  - Entre outros.
+### Principais Comandos
 
-- **Variáveis de Ambiente:**  
-  É necessário criar um arquivo `.env` na raiz do projeto com, pelo menos, a seguinte variável:
+Todos os comandos para execução dos módulos estão definidos no **Makefile**. Entre eles:
+
+- `make evaluate`
+- `make predict`
+- `make train`
+- Entre outros.
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto contendo, no mínimo:
+
 ```
-  ENV = "dev"
+ENV="dev"
 ```
-Os valores possíveis para `ENV` são `"dev"`, `"staging"` ou `"prod"`.
 
-- **Credenciais e Servidores:**  
-- **Azure:** Certifique-se de configurar as credenciais da Azure no arquivo `.env` para acesso aos recursos necessários.
-- **MLflow:** Inicie o servidor do MLflow (por exemplo, via `mlflow ui`) com a URI configurada (ex.: `http://localhost:5001`).
-- **API:** Inicie a API utilizando o comando especificado no Makefile (por exemplo, via `uvicorn`).
+
+Os possíveis valores para `ENV` são `"dev"`, `"staging"` ou `"prod"`.
+
+### Credenciais e Servidores
+
+- **Azure:** Configure as credenciais necessárias no `.env` para acesso aos recursos.
+- **MLflow:** Inicie o servidor do MLflow (por exemplo, com `mlflow ui`) utilizando a URI apropriada.
+- **API:** Execute a API conforme especificado no Makefile (por exemplo, via `uvicorn`).
 
 ---
 
 ## Empacotamento e Deploy
 
-Após a finalização do desenvolvimento e testes, o sistema é empacotado utilizando Docker e passa por etapas de validação e deploy. Detalhes sobre o empacotamento e deploy estão documentados nos respectivos READMEs dos módulos de API e Docker.
+Após testes e validação, o sistema é empacotado com Docker e passa por um rigoroso processo de deploy:
+
+- **Docker:**  
+  - **Dockerfile:** Define o container otimizado para produção.
+  - **docker-compose.yml:** Orquestra os serviços para ambiente local.
+
+- **Deploy:**  
+  Documentação adicional sobre o deploy está disponível em `DEPLOY_AWS.md`, que detalha o processo para a AWS utilizando ECS Fargate.
 
 ---
 
-## Referências e Documentação Complementar
+## Estrutura do Projeto
 
-Para obter mais informações sobre cada etapa do projeto, consulte os READMEs específicos dos módulos:
+A organização do projeto é a seguinte:
 
-- **Feature Engineering:** Documentação em `README_data_loader.md` e outros arquivos de pré-processamento.
-- **Treinamento e Ranking:** Documentação em `README_ranker.md`.
-- **API de Predição:** Documentação em `README_app.md`.
-- **Avaliação:** Documentação em `README_predict.md`.
+.
+├── Dockerfile              # Configuração do container
+├── docker-compose.yml      # Orquestração dos serviços
+├── run-local.sh            # Script de inicialização
+├── DEPLOY_AWS.md           # Instruções de deploy na AWS
+├── pyproject.toml          # Dependências do projeto
+├── configs/                # Configurações de ambiente
+└── src/                    # Código-fonte
+    ├── api/                # API de recomendação
+    ├── data/               # Manipulação e pré-processamento
+    ├── evaluation/         # Avaliação e métricas
+    ├── features/           # Feature engineering
+    ├── predict/            # Pipeline de predição
+    ├── recommendation_model/ # Modelos de recomendação
+    └── train/              # Pipeline de treinamento
 
-Outras referências importantes:
-- [LightGBM Documentation](https://lightgbm.readthedocs.io/)
-- [Lambdarank Paper](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-82.pdf)
-- [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html)
-- [Pandas Documentation](https://pandas.pydata.org/docs/)
+## Endpoints e Monitoramento
+
+### Endpoints da API
+
+- **`GET /health`**: Verifica a integridade da API.
+- **`GET /info`**: Retorna informações sobre o modelo e o ambiente.
+- **`POST /predict`**: Gera recomendações para um usuário.  
+
+  **Exemplo de requisição:**
+
+  ```json
+  {
+    "userId": "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
+    "max_results": 5,
+    "minScore": 0.3
+  }
+  ```
+
+### Monitoramento de Performance
+
+A resposta da API inclui métricas detalhadas, como:
+  ```json
+      {
+        "processing_time_ms": 123.45,
+        "timing_details": {
+          "dependencies": 0.01,
+          "prediction": 0.12,
+          "formatting": 0.01,
+          "total_ms": 123.45
+        }
+      }
+  ```
+Essas informações auxiliam na identificação e resolução de gargalos.
+
+---
+
+### Contribuindo
+
+Para colaborar com o projeto:
+
+1. Clone o repositório.
+2. Instale as dependências com `uv pip install -e .`.
+3. Crie uma nova branch para suas alterações.
+4. Envie um Pull Request com uma descrição clara das mudanças.
+
+---
+
+### Notas
+
+- O script `run-local.sh` deve ser executado a partir da raiz do projeto.
+- Certifique-se de manter a consistência nas configurações de ambiente e documentação entre os módulos.
+
+---
+
+## Referências
+
+- [LightGBM Documentation](https://lightgbm.readthedocs.io/)  
+- [Lambdarank Paper](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/MSR-TR-2010-82.pdf)  
+- [MLflow Model Registry](https://mlflow.org/docs/latest/model-registry.html)  
+- [Pandas Documentation](https://pandas.pydata.org/docs/)  
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
-
----
-
-Este README.md global oferece uma visão integrada do projeto ML_Engineer_Datathon, resumindo as principais etapas, módulos e configurações necessárias para a execução e deploy do sistema. Para detalhes específicos de cada componente, consulte os READMEs individuais disponíveis em cada pasta do projeto.

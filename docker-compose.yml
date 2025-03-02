@@ -1,37 +1,61 @@
 version: '3.8'
 
 services:
+  # Serviço da API - pode rodar em modo dev ou prod
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: news-recommender-api:latest
+    container_name: news-recommender-api
     ports:
       - "8000:8000"
     environment:
-      - ENV=dev
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=us-east-1
+      - ENV=${ENV:-dev}  # Usa 'dev' por padrão, pode ser sobrescrito para 'prod'
+      - PYTHONPATH=/app
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
     volumes:
       - ./data:/app/data
+      # Volume para mlruns só é montado em modo dev
+      - ${MLFLOW_LOCAL_DIR:-./mlruns}:/app/mlruns:cached
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 20s
-    restart: unless-stopped
+      start_period: 10s
 
+  # Servidor MLflow local (só é usado em ambiente de desenvolvimento)
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.20.1
+    container_name: mlflow-server
     ports:
-      - "5001:5000"
+      - "5001:5001"
     volumes:
-      - ./mlruns:/mlruns
-      - ./mlflow.db:/mlflow.db
-    command: mlflow server --host 0.0.0.0 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - ${MLFLOW_LOCAL_DIR:-./mlruns}:/mlruns:cached
+    command: mlflow server --host 0.0.0.0 --port 5001
     restart: unless-stopped
+    profiles:
+      - dev  # Só é iniciado com o perfil 'dev'
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+# Para executar apenas com a API em modo dev:
+# docker-compose --profile dev up api
+#
+# Para executar a API em modo prod:
+# ENV=prod docker-compose up api
+# 
+# Para executar a API e MLflow em modo dev:
+# docker-compose --profile dev up
