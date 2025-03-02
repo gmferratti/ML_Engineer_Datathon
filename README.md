@@ -134,7 +134,7 @@ Após testes e validação, o sistema é empacotado com Docker e passa por um ri
 ## Estrutura do Projeto
 
 A organização do projeto é a seguinte:
-
+```
 .
 ├── Dockerfile              # Configuração do container
 ├── docker-compose.yml      # Orquestração dos serviços
@@ -150,6 +150,7 @@ A organização do projeto é a seguinte:
     ├── predict/            # Pipeline de predição
     ├── recommendation_model/ # Modelos de recomendação
     └── train/              # Pipeline de treinamento
+```
 
 ## Endpoints e Monitoramento
 
