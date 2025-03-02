@@ -1,8 +1,7 @@
 import os
 import time
-import logging
-from typing import List, Optional, Dict, Any, Union
-from contextlib import asynccontextmanager  # ✅ Importação correta
+from typing import List, Optional, Dict, Union
+from contextlib import asynccontextmanager
 
 import mlflow
 import pandas as pd
@@ -15,7 +14,7 @@ from mlflow.tracking import MlflowClient
 from predict.pipeline import predict_for_userId
 from config import get_config, USE_S3
 from storage.io import Storage
-from data.data_loader import load_data_for_prediction, load_model
+from data.data_loader import load_data_for_prediction
 from config import configure_logger
 
 # Configura o logger usando a função centralizada
@@ -26,6 +25,7 @@ storage = Storage(use_s3=USE_S3)
 
 # Caches para dados comuns
 DATA_CACHE: Dict[str, pd.DataFrame] = {}
+
 
 # Função lifespan
 @asynccontextmanager
@@ -43,6 +43,7 @@ async def lifespan(app: FastAPI):
     logger.info("Desligando API de Recomendação de Notícias")
     DATA_CACHE.clear()
 
+
 # Criando a aplicação
 app = FastAPI(title="Recomendação de Notícias API", version="1.0.0", lifespan=lifespan)
 
@@ -57,22 +58,19 @@ app.add_middleware(
 
 # Modelos Pydantic
 
+
 class PredictRequest(BaseModel):
     userId: str = Field(
         default="4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
         example="4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297",
-        description="ID do usuário para recomendação"
+        description="ID do usuário para recomendação",
     )
-    max_results: int = Field(
-        default=5,
-        example=5,
-        description="Número máximo de recomendações"
-    )
+    max_results: int = Field(default=5, example=5, description="Número máximo de recomendações")
     min_score: float = Field(
         default=0.3,
         alias="minScore",
         example=0.3,
-        description="Score mínimo para considerar uma recomendação"
+        description="Score mínimo para considerar uma recomendação",
     )
 
     class Config:
@@ -101,6 +99,7 @@ class HealthResponse(BaseModel):
     model_status: str = Field(..., description="Status do modelo")
     model_version: str = Field(..., description="Versão do modelo")
     environment: str = Field(..., description="Ambiente de execução")
+
 
 # Configuração de CORS
 app.add_middleware(
@@ -131,26 +130,21 @@ def load_mlflow_model():
         return model
     except Exception as e:
         logger.error(f"Erro ao carregar modelo do MLflow: {e}")
-        # Se falhar ao carregar do MLflow, tenta carregar o modelo salvo localmente/S3
-        try:
-            return load_model(storage)
-        except Exception as e2:
-            logger.error(f"Também falhou ao carregar modelo do armazenamento: {e2}")
-            from src.recommendation_model.mocked_model import MockedRecommender
+        from src.recommendation_model.mocked_model import MockedRecommender
 
-            logger.warning(
-                "Usando modelo mockado devido a erro ao carregar do MLflow e do armazenamento"
-            )
-            return MockedRecommender()
+        logger.warning(
+            "Usando modelo mockado devido a erro ao carregar do MLflow e do armazenamento"
+        )
+        return MockedRecommender()
 
 
 def load_prediction_data() -> Dict[str, pd.DataFrame]:
     """
     Carrega os dados para predição e os armazena em cache.
     Tenta realizar o merge com os metadados (title e url) caso disponíveis.
-    
+
     Returns:
-        Dict[str, pd.DataFrame]: Dicionário contendo os DataFrames de 
+        Dict[str, pd.DataFrame]: Dicionário contendo os DataFrames de
         'news_features' e 'clients_features'.
     """
     if "prediction_data" in DATA_CACHE:
@@ -163,18 +157,22 @@ def load_prediction_data() -> Dict[str, pd.DataFrame]:
     except Exception as e:
         logger.error(f"Erro ao carregar dados para predição: {e}")
         # Retorna dados mockados em caso de erro
-        news_data = pd.DataFrame({
-            "pageId": [f"news_{i}" for i in range(1, 101)],
-            "title": [f"Notícia {i}" for i in range(1, 101)],
-            "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
-        })
+        news_data = pd.DataFrame(
+            {
+                "pageId": [f"news_{i}" for i in range(1, 101)],
+                "title": [f"Notícia {i}" for i in range(1, 101)],
+                "url": [f"https://g1.globo.com/noticia/{i}" for i in range(1, 101)],
+            }
+        )
 
-        user_data = pd.DataFrame({
-            "userId": [f"user_{i}" for i in range(1, 21)],
-        })
+        user_data = pd.DataFrame(
+            {
+                "userId": [f"user_{i}" for i in range(1, 21)],
+            }
+        )
 
         return {"news_features": news_data, "clients_features": user_data}
-    
+
 
 def get_model():
     if not hasattr(app.state, "model"):
@@ -187,8 +185,6 @@ def get_prediction_data():
         app.state.prediction_data = load_prediction_data()
     return app.state.prediction_data
 
-
-from mlflow.tracking import MlflowClient
 
 def get_model_version(model=Depends(get_model)) -> str:
     try:
@@ -212,7 +208,6 @@ def get_model_version(model=Depends(get_model)) -> str:
     except Exception as e:
         logger.error(f"Erro ao obter versão do modelo: {e}")
         return "unknown"
-
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Monitoring"])
@@ -259,14 +254,16 @@ def predict(request: PredictRequest):
             except (ValueError, TypeError):
                 rounded_score = score_value
 
-            rec_items.append(NewsItem(
-                news_id=news_id,
-                score=rounded_score,
-                title=rec.get("title"),
-                url=rec.get("url"),
-                issuedDate=rec.get("issuedDate"),
-                issuedTime=rec.get("issuedTime")
-            ))
+            rec_items.append(
+                NewsItem(
+                    news_id=news_id,
+                    score=rounded_score,
+                    title=rec.get("title"),
+                    url=rec.get("url"),
+                    issuedDate=rec.get("issuedDate"),
+                    issuedTime=rec.get("issuedTime"),
+                )
+            )
 
         processing_time_ms = (time.time() - start_time) * 1000
         return PredictResponse(

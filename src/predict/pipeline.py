@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import datetime
 
@@ -8,6 +7,7 @@ from src.config import logger, configure_mlflow
 from src.train.core import load_model_from_mlflow
 from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS
 
+
 def validate_features(df: pd.DataFrame, required_cols: List[str], source: str) -> None:
     missing = [col for col in required_cols if col not in df.columns]
     if missing:
@@ -15,9 +15,10 @@ def validate_features(df: pd.DataFrame, required_cols: List[str], source: str) -
         raise KeyError(f"Colunas ausentes em {source}: {missing}")
     logger.info("👍 [Predict] Todas as colunas necessárias foram encontradas em %s.", source)
 
-def build_model_input(userId: str,
-                      clients_features_df: pd.DataFrame,
-                      news_features_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+
+def build_model_input(
+    userId: str, clients_features_df: pd.DataFrame, news_features_df: pd.DataFrame
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Constrói o input final para o modelo baseado no usuário, utilizando os DataFrames
     separados de clientes e notícias.
@@ -27,7 +28,7 @@ def build_model_input(userId: str,
     if client_feat is None:
         logger.warning("⚠️ [Predict] Nenhuma feature encontrada para o usuário %s.", userId)
         return pd.DataFrame(), pd.DataFrame()
-    
+
     client_df = pd.DataFrame([client_feat])
     logger.info("👤 [Predict] Features do cliente obtidas para o usuário %s.", userId)
     logger.info("📋 [Predict] Colunas do cliente: %s", client_df.columns.tolist())
@@ -48,27 +49,38 @@ def build_model_input(userId: str,
     logger.info("📑 [Predict] News features preparadas: %d registros.", len(news_features))
 
     # Repete as features do cliente para todas as notícias
-    client_features_repeated = pd.concat([client_features] * len(news_features), ignore_index=True)
-    logger.info("🔁 [Predict] Replicação das features do cliente para %d registros.", len(client_features_repeated))
+    client_features_repeated = pd.concat(
+        [client_features] * len(news_features), ignore_index=True
+    )
+    logger.info(
+        "🔁 [Predict] Replicação das features do cliente para %d registros.",
+        len(client_features_repeated),
+    )
 
     # Monta o DataFrame final para predição com a ordem esperada
-    final_input = pd.DataFrame({
-        'isWeekend': client_features_repeated['isWeekend'],
-        'relLocalState': news_features['relLocalState'],
-        'relLocalRegion': news_features['relLocalRegion'],
-        'relThemeMain': news_features['relThemeMain'],
-        'relThemeSub': news_features['relThemeSub'],
-        'userTypeFreq': client_features_repeated['userTypeFreq'],
-        'dayPeriodFreq': client_features_repeated['dayPeriodFreq'],
-        'localStateFreq': news_features['localStateFreq'],
-        'localRegionFreq': news_features['localRegionFreq'],
-        'themeMainFreq': news_features['themeMainFreq'],
-        'themeSubFreq': news_features['themeSubFreq']
-    })
+    final_input = pd.DataFrame(
+        {
+            "isWeekend": client_features_repeated["isWeekend"],
+            "relLocalState": news_features["relLocalState"],
+            "relLocalRegion": news_features["relLocalRegion"],
+            "relThemeMain": news_features["relThemeMain"],
+            "relThemeSub": news_features["relThemeSub"],
+            "userTypeFreq": client_features_repeated["userTypeFreq"],
+            "dayPeriodFreq": client_features_repeated["dayPeriodFreq"],
+            "localStateFreq": news_features["localStateFreq"],
+            "localRegionFreq": news_features["localRegionFreq"],
+            "themeMainFreq": news_features["themeMainFreq"],
+            "themeSubFreq": news_features["themeSubFreq"],
+        }
+    )
 
-    logger.info("✅ [Predict] Input final preparado: %d registros, colunas: %s",
-                len(final_input), final_input.columns.tolist())
+    logger.info(
+        "✅ [Predict] Input final preparado: %d registros, colunas: %s",
+        len(final_input),
+        final_input.columns.tolist(),
+    )
     return final_input, non_viewed
+
 
 def _handle_datetime_fields(row: pd.Series) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -104,8 +116,9 @@ def _handle_datetime_fields(row: pd.Series) -> Tuple[Optional[str], Optional[str
     return issued_date_str, issued_time_str
 
 
-def _generate_cold_start_recommendations(news_features_df: pd.DataFrame,
-                                        n: int) -> List[Dict[str, Any]]:
+def _generate_cold_start_recommendations(
+    news_features_df: pd.DataFrame, n: int
+) -> List[Dict[str, Any]]:
     """
     Gera recomendações para cold start, selecionando as notícias mais recentes
     com score fixo "desconhecido".
@@ -122,7 +135,7 @@ def _generate_cold_start_recommendations(news_features_df: pd.DataFrame,
         temp_df = news_features_df.copy()
         temp_df["issuedDatetime"] = pd.to_datetime(
             temp_df["issuedDate"].astype(str) + " " + temp_df["issuedTime"].astype(str),
-            errors="coerce"
+            errors="coerce",
         )
         sorted_df = temp_df.sort_values("issuedDatetime", ascending=False).head(n)
     else:
@@ -131,22 +144,26 @@ def _generate_cold_start_recommendations(news_features_df: pd.DataFrame,
     recommendations = []
     for _, row in sorted_df.iterrows():
         issued_date_str, issued_time_str = _handle_datetime_fields(row)
-        recommendations.append({
-            "pageId": row["pageId"],
-            "score": "desconhecido",
-            "title": row.get("title"),
-            "url": row.get("url"),
-            "issuedDate": issued_date_str,
-            "issuedTime": issued_time_str
-        })
+        recommendations.append(
+            {
+                "pageId": row["pageId"],
+                "score": "desconhecido",
+                "title": row.get("title"),
+                "url": row.get("url"),
+                "issuedDate": issued_date_str,
+                "issuedTime": issued_time_str,
+            }
+        )
     return recommendations
 
 
-def _generate_normal_recommendations(scores: List[float],
-                                    non_viewed: pd.DataFrame,
-                                    news_features_df: pd.DataFrame,
-                                    score_threshold: float,
-                                    n: int) -> List[Dict[str, Any]]:
+def _generate_normal_recommendations(
+    scores: List[float],
+    non_viewed: pd.DataFrame,
+    news_features_df: pd.DataFrame,
+    score_threshold: float,
+    n: int,
+) -> List[Dict[str, Any]]:
     """
     Gera recomendações para usuários não cold start, usando os scores gerados pelo modelo.
 
@@ -173,23 +190,27 @@ def _generate_normal_recommendations(scores: List[float],
         else:
             title, url, issued_date_str, issued_time_str = None, None, None, None
 
-        recommendations.append({
-            "pageId": news_id,
-            "score": score,
-            "title": title,
-            "url": url,
-            "issuedDate": issued_date_str,
-            "issuedTime": issued_time_str
-        })
+        recommendations.append(
+            {
+                "pageId": news_id,
+                "score": score,
+                "title": title,
+                "url": url,
+                "issuedDate": issued_date_str,
+                "issuedTime": issued_time_str,
+            }
+        )
     return recommendations
 
 
-def predict_for_userId(userId: str,
-                       clients_features_df: pd.DataFrame,
-                       news_features_df: pd.DataFrame,
-                       model,
-                       n: int = 5,
-                       score_threshold: float = 15) -> Tuple[List[Dict[str, Any]], bool]:
+def predict_for_userId(
+    userId: str,
+    clients_features_df: pd.DataFrame,
+    news_features_df: pd.DataFrame,
+    model,
+    n: int = 5,
+    score_threshold: float = 15,
+) -> Tuple[List[Dict[str, Any]], bool]:
     """
     Realiza a predição e gera recomendações para o usuário.
 
@@ -216,7 +237,9 @@ def predict_for_userId(userId: str,
 
     # Se não encontrar e o userId tiver tamanho indicativo de hash, assume cold start
     if client_feat is None and len(userId) >= 64:
-        logger.info("❄️ [Predict] Usuário %s não encontrado (hash válido). Assumindo cold start.", userId)
+        logger.info(
+            "❄️ [Predict] Usuário %s não encontrado (hash válido). Assumindo cold start.", userId
+        )
         recommendations = _generate_cold_start_recommendations(news_features_df, n)
         return recommendations, True
 
@@ -227,9 +250,14 @@ def predict_for_userId(userId: str,
         return [], False
 
     scores = model.predict(final_input)
-    logger.info("🔮 [Predict] Predição realizada para o usuário %s com %d scores.", userId, len(scores))
-    recommendations = _generate_normal_recommendations(scores, non_viewed, news_features_df, score_threshold, n)
+    logger.info(
+        "🔮 [Predict] Predição realizada para o usuário %s com %d scores.", userId, len(scores)
+    )
+    recommendations = _generate_normal_recommendations(
+        scores, non_viewed, news_features_df, score_threshold, n
+    )
     return recommendations, False
+
 
 def main():
     logger.info("=== 🚀 [Predict] Iniciando Pipeline de Predição ===")
@@ -237,24 +265,33 @@ def main():
     data = load_data_for_prediction()
     news_features_df = data["news_features"]
     clients_features_df = data["clients_features"]
-    
+
     configure_mlflow()
     model = load_model_from_mlflow()
-    
+
     userId = "4b3c2c5c0edaf59137e164ef6f7d88f94d66d0890d56020de1ca6afd55b4f297"
     logger.info("=== 🚀 [Predict] Processando predição para o usuário: %s ===", userId)
-    
-    recommendations = predict_for_userId(userId, clients_features_df, news_features_df, model)
-    
+
+    recommendations, is_cold_start = predict_for_userId(
+        userId,
+        clients_features_df,
+        news_features_df,
+        model
+    )
+
+    logger.info("🥶 [Predict] Cold start: %s", is_cold_start)
+
     if recommendations:
-        logger.info("👍 [Predict] Recomendações para o usuário %s: %s", userId, recommendations)
+        logger.info("👍 [Predict] Recomendações para o usuário %s: %s",
+                    userId, [rec["pageId"] for rec in recommendations])
         print("🔔 Recomendações:")
         for rec in recommendations:
             print(" -", rec)
     else:
         logger.info("😕 [Predict] Nenhuma recomendação gerada para o usuário %s.", userId)
-    
+
     logger.info("=== ✅ [Predict] Pipeline de Predição Finalizado ===")
+
 
 if __name__ == "__main__":
     main()

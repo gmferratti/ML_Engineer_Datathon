@@ -5,6 +5,7 @@ from src.config import logger, DATA_PATH, USE_S3
 from storage.io import Storage
 from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS, METADATA_COLS
 
+
 def get_client_features(userId: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
     """
     Obtém as características de um cliente.
@@ -50,13 +51,13 @@ def get_predicted_news(scores: List[float],
                        score_threshold: float = 30) -> List[Dict[str, Any]]:
     """
     Retorna os IDs e os scores das notícias recomendadas com base nos scores.
-    
+
     Args:
         scores (List[float]): Scores previstos.
         news_features_df (pd.DataFrame): Dados das notícias.
         n (int, opcional): Máximo de notícias. Default: 5.
         score_threshold (float, opcional): Score mínimo. Default: 30.
-    
+
     Returns:
         List[Dict[str, Any]]: Lista de dicionários com 'pageId' e 'score'.
     """
@@ -67,7 +68,6 @@ def get_predicted_news(scores: List[float],
     filtered = df_scores[df_scores["score"] >= score_threshold]
     top_news = filtered.sort_values("score", ascending=False).head(n)
     return top_news.to_dict("records")
-
 
 
 def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
@@ -89,6 +89,7 @@ def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
     X_test["TARGET"] = y_test
     return X_test
 
+
 def load_data_for_prediction(storage: Optional[Storage] = None,
                              include_metadata: bool = False) -> Dict[str, pd.DataFrame]:
     """
@@ -104,7 +105,8 @@ def load_data_for_prediction(storage: Optional[Storage] = None,
 
     Returns:
         Dict[str, pd.DataFrame]: Dicionário contendo:
-            - "news_features": DataFrame com as features das notícias (e metadados, se solicitado).
+            - "news_features": DataFrame com as features das notícias
+             (e metadados, se solicitado).
             - "clients_features": DataFrame com as features dos clientes.
     """
     if storage is None:
@@ -116,7 +118,7 @@ def load_data_for_prediction(storage: Optional[Storage] = None,
 
     # Extrai as features de notícias, garantindo que 'pageId' esteja incluído
     news_features_df = full_df[['pageId'] + NEWS_FEATURES_COLUMNS]
-    
+
     # Converte pageId para string para garantir a compatibilidade
     news_features_df.loc[:, "pageId"] = news_features_df["pageId"].astype(str)
 
@@ -130,10 +132,12 @@ def load_data_for_prediction(storage: Optional[Storage] = None,
             logger.info("✅ [Data Loader] DataFrame de notícias enriquecido: %d registros.",
                         len(news_features_df))
         except Exception as e:
-            logger.warning("Não foi possível carregar ou fazer merge dos metadados das notícias: %s", e)
+            logger.warning(
+                "Não foi possível carregar ou fazer merge dos metadados das notícias: %s", e)
 
     if 'userId' not in full_df.columns:
-        logger.error("🚨 [Data Loader] A coluna 'userId' não foi encontrada no DataFrame completo.")
+        logger.error(
+            "🚨 [Data Loader] A coluna 'userId' não foi encontrada no DataFrame completo.")
         raise KeyError("Coluna 'userId' ausente.")
     clients_features_df = full_df[['userId'] + CLIENT_FEATURES_COLUMNS].drop_duplicates()
 
@@ -141,25 +145,3 @@ def load_data_for_prediction(storage: Optional[Storage] = None,
                 len(news_features_df), len(clients_features_df))
 
     return {"news_features": news_features_df, "clients_features": clients_features_df}
-
-
-def load_model(storage: Optional[Storage] = None):
-    """
-    Carrega o modelo treinado para predição.
-
-    Args:
-        storage (Storage, optional): Instância para I/O.
-
-    Returns:
-        object: Modelo treinado ou None.
-    """
-    if storage is None:
-        storage = Storage(use_s3=USE_S3)
-    model_path = os.path.join(DATA_PATH, "train", "lightgbm_ranker.pkl")
-    try:
-        model = storage.load_pickle(model_path)
-        logger.info("Modelo carregado de %s", model_path)
-        return model
-    except Exception as e:
-        logger.error("Erro ao carregar modelo de %s: %s", model_path, e)
-        return None

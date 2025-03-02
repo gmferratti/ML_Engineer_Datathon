@@ -103,7 +103,7 @@ predict:
 evaluate:
 	PYTHONPATH="." uv run src/evaluation/pipeline.py
 	
-run: pp_features train predict evaluate
+run: pp_features train predict # evaluate
 
 local_api:
 	PYTHONPATH="." uvicorn src.api.app:app --reload
