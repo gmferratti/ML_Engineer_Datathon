@@ -1,21 +1,18 @@
 #!/bin/bash
 
-# Cores para output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Banner
 echo -e "${BLUE}"
 echo "======================================================="
 echo "   Sistema de Recomendação de Notícias - Inicialização"
 echo "======================================================="
 echo -e "${NC}"
 
-# Função de ajuda
 function show_help {
     echo -e "${CYAN}Uso: $0 [ambiente] [modo] [opções]${NC}"
     echo
@@ -41,14 +38,12 @@ function show_help {
     exit 0
 }
 
-# Processar argumentos
 for arg in "$@"; do
     if [ "$arg" == "help" ]; then
         show_help
     fi
 done
 
-# Verificar dependências
 echo -e "${YELLOW}Verificando dependências...${NC}"
 
 if ! command -v docker &> /dev/null; then
@@ -63,18 +58,15 @@ fi
 
 echo -e "${GREEN}✓ Todas as dependências encontradas.${NC}"
 
-# Verificar se existem os diretórios necessários
 echo -e "${YELLOW}Verificando diretórios de dados...${NC}"
 mkdir -p data
 mkdir -p mlruns
 
-# Definir ambiente e modo
 ENV="dev"
 MODE="full" 
 REBUILD="false"
 SHOW_LOGS="false"
 
-# Processar argumentos
 for arg in "$@"; do
     case $arg in
         "dev"|"prod")
@@ -95,34 +87,30 @@ done
 echo -e "${YELLOW}Ambiente: ${CYAN}$ENV${NC}"
 echo -e "${YELLOW}Modo: ${CYAN}$MODE${NC}"
 
-# Configurar variáveis de ambiente
 if [ "$ENV" == "prod" ]; then
     export ENV="prod"
     export COMPOSE_PROFILES=""
     
-    # Verificar se as credenciais AWS estão definidas para modo prod
     if [ "$ENV" == "prod" ] && [ -z "$AWS_ACCESS_KEY_ID" ]; then
         echo -e "${YELLOW}⚠️ Executando em produção sem AWS_ACCESS_KEY_ID definido${NC}"
         echo -e "${YELLOW}⚠️ O acesso a dados no S3 pode falhar${NC}"
     fi
 else
-    export ENV="dev" 
+    export ENV="dev"
     export COMPOSE_PROFILES="dev"
     export MLFLOW_LOCAL_DIR="./mlruns"
 fi
 
-# Reconstruir se solicitado
 if [ "$REBUILD" == "true" ]; then
     echo -e "${YELLOW}Reconstruindo as imagens Docker...${NC}"
     docker-compose down
     docker-compose build --no-cache
 fi
 
-# Iniciar serviços de acordo com o modo
 case $MODE in
     "api")
-        echo -e "${YELLOW}Iniciando apenas a API em modo ${CYAN}$ENV${NC}...${NC}"
-        docker-compose up -d api
+        echo -e "${YELLOW}Iniciando apenas a API em modo ${CYAN}$ENV${NC}..."
+        ENV=dev docker-compose up -d api
         ;;
     "mlflow")
         if [ "$ENV" == "prod" ]; then
@@ -132,19 +120,18 @@ case $MODE in
             exit 1
         fi
         echo -e "${YELLOW}Iniciando apenas MLflow...${NC}"
-        docker-compose --profile dev up -d mlflow
+        ENV=dev docker-compose --profile dev up -d mlflow
         ;;
     *)
-        echo -e "${YELLOW}Iniciando todos os serviços em modo ${CYAN}$ENV${NC}...${NC}"
+        echo -e "${YELLOW}Iniciando todos os serviços em modo ${CYAN}$ENV${NC}..."
         if [ "$ENV" == "dev" ]; then
-            docker-compose --profile dev up -d
+            ENV=dev docker-compose --profile dev up -d
         else
             docker-compose up -d api
         fi
         ;;
 esac
 
-# Verificar se os serviços iniciaram corretamente
 echo -e "${YELLOW}Verificando status dos serviços...${NC}"
 sleep 5
 
@@ -173,7 +160,6 @@ else
     echo -e "${YELLOW}Usando MLflow local em: http://localhost:5001${NC}"
 fi
 
-# Exibir logs se solicitado
 if [ "$SHOW_LOGS" == "true" ]; then
     echo -e "${YELLOW}Exibindo logs (Ctrl+C para parar)...${NC}"
     docker-compose logs -f

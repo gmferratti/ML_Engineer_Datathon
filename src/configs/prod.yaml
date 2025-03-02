@@ -1,6 +1,6 @@
 # MLflow configuration
-MLFLOW_TRACKING_URI: "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"
-MLFLOW_REGISTRY_URI: "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"
+MLFLOW_TRACKING_URI: "http://ec2-34-227-177-38.compute-1.amazonaws.com:5000/"
+MLFLOW_REGISTRY_URI: "http://ec2-34-227-177-38.compute-1.amazonaws.com:5000/"
 MLFLOW_ARTIFACT_ROOT: "s3://mlflow-datathon-grupo57"
 EXPERIMENT: "news-recommendation-prod"
 MODEL_NAME: "news-recommender-prod"
