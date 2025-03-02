@@ -9,43 +9,8 @@ Este guia simplificado mostra como fazer o deploy do sistema de recomendação u
 3. Docker instalado em sua máquina
 4. Correção do erro "No module named 'configs'" (instruções abaixo)
 
-## Etapa 1: Corrigir o erro de importação
 
-Antes de fazer o deploy, precisamos corrigir o erro "No module named 'configs'". Abra o arquivo `src/config.py` e substitua a função `load_config()` pelo código abaixo:
-
-```python
-def load_config() -> Tuple[str, Dict[str, Any]]:
-    """
-    Carrega a configuração com base na variável de ambiente 'ENV'.
-    """
-    env = os.getenv("ENV", "dev")
-    logger.info("Ambiente: %s", env)
-    
-    config_path = os.path.join(os.path.dirname(__file__), 'configs', f'{env}.yaml')
-    
-    try:
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-    except Exception as e:
-        logger.error(f"Erro ao carregar {config_path}: {e}")
-        # Se falhar, use configurações baseadas em variáveis de ambiente
-        logger.warning("Usando configurações de variáveis de ambiente")
-        config = {
-            "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI", "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"),
-            "MLFLOW_REGISTRY_URI": os.getenv("MLFLOW_REGISTRY_URI", "http://ec2-3-93-215-88.compute-1.amazonaws.com:5000/"),
-            "EXPERIMENT": os.getenv("EXPERIMENT", "news-recommendation-prod"),
-            "MODEL_NAME": os.getenv("MODEL_NAME", "news-recommender-prod"),
-            "USE_S3": True,
-            "S3_BUCKET": os.getenv("S3_BUCKET", "fiap-mleng-datathon-data-grupo57"),
-            "MODEL_ALIAS": os.getenv("MODEL_ALIAS", "champion"),
-            "API_HOST": "0.0.0.0",
-            "API_PORT": 8000
-        }
-        
-    return env, config
-```
-
-## Etapa 2: Obter o ID da sua conta AWS
+## Etapa 1: Obter o ID da sua conta AWS
 
 Existem várias maneiras de obter seu AWS Account ID:
 
@@ -59,7 +24,7 @@ aws sts get-caller-identity --query Account --output text
 2. Clique no nome do seu usuário no canto superior direito
 3. Seu Account ID aparecerá no dropdown
 
-## Etapa 3: Criar um repositório ECR e enviar a imagem Docker
+## Etapa 2: Criar um repositório ECR e enviar a imagem Docker
 
 ```bash
 # Substitua 123456789012 pelo seu Account ID
@@ -82,7 +47,7 @@ docker tag news-recommender-api:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazo
 docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/news-recommender-api:latest
 ```
 
-## Etapa 4: Deploy usando AWS App Runner pelo Console
+## Etapa 3: Deploy usando AWS App Runner pelo Console
 
 1. Acesse o [Console AWS App Runner](https://console.aws.amazon.com/apprunner)
 2. Clique em **Create service**
@@ -114,7 +79,7 @@ docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/news-recommender-a
 
 O App Runner começará a provisionar seu serviço, o que pode levar alguns minutos. Quando estiver pronto, você terá um endpoint HTTPS para acessar a API.
 
-## Etapa 5: Testar a API
+## Etapa 4: Testar a API
 
 Depois que o serviço estiver em execução, você pode testar a API usando curl ou um navegador:
 
