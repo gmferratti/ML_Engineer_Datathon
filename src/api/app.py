@@ -2,6 +2,7 @@ import os
 import time
 import logging
 from typing import List, Optional, Dict
+from contextlib import asynccontextmanager  # ✅ Importação correta
 
 import mlflow
 import pandas as pd
@@ -9,7 +10,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from predict.predict import predict_for_userId
+from predict.pipeline import predict_for_userId
 from config import get_config, USE_S3
 from storage.io import Storage
 from data.data_loader import load_data_for_prediction, load_model
@@ -21,8 +22,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger("api")
 
-# Modelos Pydantic
+# Inicialização do Storage
+storage = Storage(use_s3=USE_S3)
 
+# Caches para dados comuns
+DATA_CACHE: Dict[str, pd.DataFrame] = {}
+
+# Função lifespan
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Iniciando API de Recomendação de Notícias")
+    try:
+        app.state.model = load_mlflow_model()
+        app.state.prediction_data = load_prediction_data()
+        logger.info("Modelo e dados carregados com sucesso")
+    except Exception as e:
+        logger.error(f"Erro na inicialização: {e}")
+
+    yield  # Mantém o app rodando até ser finalizado
+
+    logger.info("Desligando API de Recomendação de Notícias")
+    DATA_CACHE.clear()
+
+# Criando a aplicação
+app = FastAPI(title="Recomendação de Notícias API", version="1.0.0", lifespan=lifespan)
+
+# Configuração de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Modelos Pydantic
 
 class PredictRequest(BaseModel):
     user_id: str = Field(..., description="ID do usuário para recomendação")
@@ -32,7 +66,7 @@ class PredictRequest(BaseModel):
     )
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class NewsItem(BaseModel):
@@ -55,10 +89,6 @@ class HealthResponse(BaseModel):
     model_status: str = Field(..., description="Status do modelo")
     model_version: str = Field(..., description="Versão do modelo")
     environment: str = Field(..., description="Ambiente de execução")
-
-
-# Criação da aplicação FastAPI
-app = FastAPI(title="Recomendação de Notícias API", version="1.0.0")
 
 # Configuração de CORS
 app.add_middleware(
@@ -242,8 +272,8 @@ async def model_info(model=Depends(get_model)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logger.info("Iniciando API de Recomendação de Notícias")
     try:
         app.state.model = load_mlflow_model()
@@ -252,9 +282,8 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Erro na inicialização: {e}")
 
+    yield  # Mantém o app rodando até ser finalizado
 
-@app.on_event("shutdown")
-async def shutdown_event():
     logger.info("Desligando API de Recomendação de Notícias")
     DATA_CACHE.clear()
 
@@ -264,4 +293,4 @@ if __name__ == "__main__":
 
     host = get_config("API_HOST", "0.0.0.0")
     port = int(get_config("API_PORT", 8000))
-    uvicorn.run("app:app", host=host, port=port, reload=True)
+    uvicorn.run(app, host=host, port=port, reload=True)

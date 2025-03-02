@@ -104,10 +104,10 @@ run: pp_features train predict
 
 
 local_api:
-	uv run src/api/app.py
+	PYTHONPATH="." uvicorn src.api.app:app --reload
 
 docker_api:
-	docker-compose up --build
+	PYTHONPATH="." docker-compose up --build
 
 # IMPORTANTE: Para rodar estes comandos no Windows: 
 

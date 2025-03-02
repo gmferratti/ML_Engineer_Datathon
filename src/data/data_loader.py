@@ -3,7 +3,7 @@ import pandas as pd
 from typing import List, Dict, Optional
 from src.config import logger, DATA_PATH, USE_S3
 from storage.io import Storage
-
+from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS
 
 def get_client_features(user_id: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
     """
@@ -91,22 +91,33 @@ def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
 
 def load_data_for_prediction(storage: Optional[Storage] = None) -> Dict[str, pd.DataFrame]:
     """
-    Carrega dados para predição (notícias e clientes).
-
-    Args:
-        storage (Storage, optional): Instância para I/O.
-
-    Returns:
-        dict: Dados para predição.
+    Carrega dados para predição (notícias e clientes) a partir do arquivo completo de features,
+    separando em dois DataFrames: um para notícias e outro para clientes.
     """
     if storage is None:
         storage = Storage(use_s3=USE_S3)
-    pred_dir = os.path.join(DATA_PATH, "predict")
-    news_file = os.path.join(pred_dir, "news_features_df.parquet")
-    clients_file = os.path.join(pred_dir, "clients_features_df.parquet")
-    news_df = storage.read_parquet(news_file)
-    clients_df = storage.read_parquet(clients_file)
-    return {"news_features": news_df, "clients_features": clients_df}
+    
+    full_path = os.path.join(DATA_PATH, "train", "X_train_full.parquet")
+    logger.info("🔍 [Data Loader] Carregando dados completos de: %s", full_path)
+    full_df = storage.read_parquet(full_path)
+    
+    # Inclua a coluna 'pageId' no DataFrame de notícias
+    if 'pageId' not in full_df.columns:
+        logger.error("🚨 [Data Loader] A coluna 'pageId' não foi encontrada no DataFrame completo.")
+        raise KeyError("Coluna 'pageId' ausente no arquivo completo de features.")
+    
+    news_features_df = full_df[['pageId'] + NEWS_FEATURES_COLUMNS]
+    
+    # Extrai as features dos clientes: 'userId' + demais features, removendo duplicatas
+    if 'userId' not in full_df.columns:
+        logger.error("🚨 [Data Loader] A coluna 'userId' não foi encontrada no DataFrame completo.")
+        raise KeyError("Coluna 'userId' ausente.")
+    clients_features_df = full_df[['userId'] + CLIENT_FEATURES_COLUMNS].drop_duplicates()
+    
+    logger.info("✅ [Data Loader] Dados preparados: %d registros de notícias e %d de clientes.",
+                len(news_features_df), len(clients_features_df))
+    
+    return {"news_features": news_features_df, "clients_features": clients_features_df}
 
 
 def load_model(storage: Optional[Storage] = None):
