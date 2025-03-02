@@ -1,7 +1,8 @@
 import os
 import pandas as pd
-from typing import Tuple, List, Dict, Any, Optional
 import datetime
+
+from typing import Tuple, List, Dict, Any, Optional
 from src.data.data_loader import load_data_for_prediction, get_client_features, get_predicted_news
 from src.config import logger, configure_mlflow
 from src.train.core import load_model_from_mlflow

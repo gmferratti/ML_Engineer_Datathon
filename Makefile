@@ -89,7 +89,7 @@ mlflow-start: setup-mlflow
 ################################################################### PROJECT RUNNING ###################################################################
 #######################################################################################################################################################
 
-.PHONY: pp_features train predict run
+.PHONY: pp_features train predict evaluate run
 
 pp_features:
 	PYTHONPATH="." uv run src/features/pipeline.py
@@ -100,7 +100,10 @@ train:
 predict:
 	PYTHONPATH="." uv run src/predict/pipeline.py
 
-run: pp_features train predict
+evaluate:
+	PYTHONPATH="." uv run src/evaluation/pipeline.py
+	
+run: pp_features train predict evaluate
 
 local_api:
 	PYTHONPATH="." uvicorn src.api.app:app --reload
