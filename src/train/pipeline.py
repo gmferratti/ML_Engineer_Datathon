@@ -118,7 +118,7 @@ def train_and_log_model(
         logger.info("Treinamento concluído. Run ID: %s", run.info.run_id)
 
 
-def train_model() -> None:
+def train_model_pipeline() -> None:
     """
     Pipeline principal de treinamento.
     """
@@ -131,4 +131,4 @@ def train_model() -> None:
 
 
 if __name__ == "__main__":
-    train_model()
+    train_model_pipeline()

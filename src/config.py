@@ -9,7 +9,9 @@ import yaml
 from dotenv import load_dotenv
 
 
-def configure_logger(logger_name: str = __name__, level: int = logging.INFO) -> logging.Logger:
+def configure_logger(
+    logger_name: str = __name__, 
+    level: int = logging.INFO) -> logging.Logger:
     """
     Configura e retorna um logger.
 
@@ -91,7 +93,7 @@ def get_data_path() -> str:
     """
     use_s3 = get_config("USE_S3", False)
     if use_s3:
-        data_path = get_config("S3_DATA_PATH", "data/")
+        data_path = get_config("S3_BUCKET", "fiap-mleng-datathon-data-grupo57/")
     else:
         data_path = get_config("LOCAL_DATA_PATH", "data/")
         # Se o caminho não for absoluto, prefixa com a raiz do projeto.
