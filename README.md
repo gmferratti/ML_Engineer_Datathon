@@ -23,7 +23,6 @@ Este documento reflete a estrutura do projeto, que espelha a organização dos m
 ## Objetivo e Contexto
 
 Desenvolver um sistema de recomendação personalizado, com foco em prever a próxima notícia a ser lida por um usuário com base no consumo de notícias do G1. O sistema é projetado para lidar tanto com usuários com histórico consolidado quanto com aqueles em situação de *cold start*.
-Desenvolver um sistema de recomendação personalizado, com foco em prever a próxima notícia a ser lida por um usuário com base no consumo de notícias do G1. O sistema é projetado para lidar tanto com usuários com histórico consolidado quanto com aqueles em situação de *cold start*.
 
 **Integrantes:**
 
@@ -85,10 +84,8 @@ O ML_Engineer_Datathon é composto por diversos módulos que, integrados, formam
 
 3. **API de Predição:**  
    - A API processa requisições, tratando os inputs e gerando respostas diferenciadas para casos de *cold start* ou histórico de consumo consolidado.
-   - A API processa requisições, tratando os inputs e gerando respostas diferenciadas para casos de *cold start* ou histórico de consumo consolidado.
 
 4. **Avaliação:**  
-   - Um pipeline calcula o **NDCG@10** para medir a eficácia do ranking gerado, permitindo ajustes e melhorias contínuas.
    - Um pipeline calcula o **NDCG@10** para medir a eficácia do ranking gerado, permitindo ajustes e melhorias contínuas.
 
 ---
@@ -117,9 +114,9 @@ Os possíveis valores para `ENV` são `"dev"`, `"staging"` ou `"prod"`.
 
 ### Credenciais e Servidores
 
-- **Azure:** Configure as credenciais necessárias no `.env` para acesso aos recursos.
-- **MLflow:** Inicie o servidor do MLflow (por exemplo, com `mlflow ui`) utilizando a URI apropriada.
-- **API:** Execute a API conforme especificado no Makefile (por exemplo, via `uvicorn`).
+- **AWS:** Configura as credenciais necessárias no `.env` para acesso aos recursos.
+- **MLflow:** Inicia o servidor do MLflow (por exemplo, com `mlflow ui`) utilizando a URI apropriada.
+- **API:** Execute a API conforme especificado no Makefile (por exemplo, via `uv`).
 
 ---
 
