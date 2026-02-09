@@ -7,7 +7,7 @@ import mlflow
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from mlflow.tracking import MlflowClient
 
 from src.predict.pipeline import predict_for_userId
@@ -136,6 +136,7 @@ class PredictRequest(BaseModel):
 
     class Config:
         populate_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class NewsItem(BaseModel):

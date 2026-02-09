@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"} 
 
+#TODO: update requirements (remove pydantic warnings)
 dependencies = [
     "fastapi==0.115.8",
     "uvicorn==0.34.0",

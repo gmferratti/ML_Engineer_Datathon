@@ -1,147 +1,135 @@
 import os
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
-from typing import List, Dict, Optional, Any
-from src.config import logger, DATA_PATH, USE_S3
-from src.storage.io import Storage
-from src.predict.constants import CLIENT_FEATURES_COLUMNS, NEWS_FEATURES_COLUMNS, METADATA_COLS
+
+from src.config import DATA_PATH, USE_S3, logger
+from src.predict.constants import (
+    CLIENT_FEATURES_COLUMNS, 
+    METADATA_COLS, 
+    NEWS_FEATURES_COLUMNS)
 
 
-def get_client_features(userId: str, clients_features_df: pd.DataFrame) -> Optional[pd.Series]:
+def get_client_features(user_id: str, clients_df: pd.DataFrame) -> Optional[pd.Series]:
     """
-    Obtém as características de um cliente.
+    Retorna as features do cliente identificado por `user_id`.
 
     Args:
-        userId (str): ID do usuário.
-        clients_features_df (pd.DataFrame): Dados dos clientes.
+        user_id: Identificador do usuário.
+        clients_df: DataFrame contendo pelo menos a coluna `userId` e as
+            colunas listadas em `CLIENT_FEATURES_COLUMNS`.
 
     Returns:
-        pd.Series or None: Características do cliente, ou None se não encontrado.
+        Série com as colunas do cliente, ou `None` se não houver registro.
     """
-    df = clients_features_df[clients_features_df["userId"] == userId]
-    if df.empty:
-        logger.warning("Nenhuma feature encontrada para o usuário: %s", userId)
+    matches = clients_df[clients_df["userId"] == user_id]
+    if matches.empty:
+        logger.warning("Nenhuma feature encontrada para o usuário: %s", user_id)
         return None
-    return df.iloc[0]
+    return matches.iloc[0]
 
 
-def get_non_viewed_news(userId: str, news_features_df: pd.DataFrame,
-                        clients_features_df: pd.DataFrame) -> pd.DataFrame:
+def get_non_viewed_news(user_id: str, news_df: pd.DataFrame, clients_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Retorna notícias que o usuário ainda não visualizou.
+    Retorna as notícias que o usuário ainda não visualizou.
 
     Args:
-        userId (str): ID do usuário.
-        news_features_df (pd.DataFrame): Dados das notícias.
-        clients_features_df (pd.DataFrame): Histórico dos usuários.
+        user_id: Identificador do usuário.
+        news_df: DataFrame de notícias contendo a coluna `pageId`.
+        clients_df: Histórico de visualizações contendo colunas `userId` e `pageId`.
 
     Returns:
-        pd.DataFrame: Notícias não visualizadas.
+        DataFrame com colunas `userId` e `pageId` para itens não vistos.
     """
-    seen = clients_features_df.loc[
-        clients_features_df["userId"] == userId, "pageId"
-    ].unique()
-    unread = news_features_df[~news_features_df["pageId"].isin(seen)].copy()
-    unread["userId"] = userId
-    return unread[["userId", "pageId"]].reset_index(drop=True)
+    seen_page_ids = clients_df.loc[clients_df["userId"] == user_id, "pageId"].unique()
+    not_seen = news_df[~news_df["pageId"].isin(seen_page_ids)].copy()
+    not_seen = not_seen.reset_index(drop=True)
+    not_seen["userId"] = user_id
+    return not_seen[["userId", "pageId"]]
 
 
-def get_predicted_news(scores: List[float],
-                       news_features_df: pd.DataFrame,
-                       n: int = 5,
-                       score_threshold: float = 30) -> List[Dict[str, Any]]:
+def get_predicted_news(
+    scores: List[float], news_df: pd.DataFrame, n: int = 5, score_threshold: float = 30.0
+) -> List[Dict[str, Any]]:
     """
-    Retorna os IDs e os scores das notícias recomendadas com base nos scores.
+    Seleciona as notícias previstas com maior score.
 
     Args:
-        scores (List[float]): Scores previstos.
-        news_features_df (pd.DataFrame): Dados das notícias.
-        n (int, opcional): Máximo de notícias. Default: 5.
-        score_threshold (float, opcional): Score mínimo. Default: 30.
+        scores: Lista de scores, alinhada por posição com `news_df`.
+        news_df: DataFrame contendo a coluna `pageId`.
+        n: Número máximo de itens retornados.
+        score_threshold: Valor mínimo de score para incluir a notícia.
 
     Returns:
-        List[Dict[str, Any]]: Lista de dicionários com 'pageId' e 'score'.
+        Lista de dicionários com chaves `pageId` e `score`, ordenada por score decrescente.
     """
-    df_scores = pd.DataFrame({
-        "pageId": news_features_df["pageId"],
-        "score": scores
-    })
-    filtered = df_scores[df_scores["score"] >= score_threshold]
-    top_news = filtered.sort_values("score", ascending=False).head(n)
-    return top_news.to_dict("records")
+    scores_df = pd.DataFrame({"pageId": news_df["pageId"].astype(str).values, "score": scores})
+    selected = scores_df[scores_df["score"] >= score_threshold]
+    top_n = selected.sort_values("score", ascending=False).head(n)
+    return top_n.to_dict("records")
 
 
-def get_evaluation_data(storage: Optional[Storage] = None) -> pd.DataFrame:
+def get_evaluation_data(storage: Optional[object] = None) -> pd.DataFrame:
     """
-    Carrega dados de avaliação (features + target).
+    Carrega os dados de avaliação combinando features e target.
 
     Args:
-        storage (Storage, optional): Instância para I/O.
+        storage: Instância de storage com método `read_parquet(path)`.
 
     Returns:
-        pd.DataFrame: Dados de avaliação.
+        DataFrame com colunas de features e coluna `TARGET` contendo o vetor alvo.
     """
     if storage is None:
-        storage = Storage(use_s3=USE_S3)
-    X_path = os.path.join(DATA_PATH, "train", "X_test.parquet")
+        from src.storage.io import Storage as _Storage
+
+        storage = _Storage(use_s3=USE_S3)
+    x_path = os.path.join(DATA_PATH, "train", "X_test.parquet")
     y_path = os.path.join(DATA_PATH, "train", "y_test.parquet")
-    X_test = storage.read_parquet(X_path)
-    y_test = storage.read_parquet(y_path)
-    X_test["TARGET"] = y_test
-    return X_test
+    x_df = storage.read_parquet(x_path)
+    y_series = storage.read_parquet(y_path)
+    x_df = x_df.copy()
+    x_df["TARGET"] = y_series
+    return x_df
 
 
-def load_data_for_prediction(storage: Optional[Storage] = None,
-                             include_metadata: bool = False) -> Dict[str, pd.DataFrame]:
+def load_data_for_prediction(storage: Optional[object] = None, include_metadata: bool = False) -> Dict[str, pd.DataFrame]:
     """
-    Carrega os dados para predição a partir do arquivo completo de features,
-    separando-os em DataFrames de notícias e clientes. Opcionalmente, realiza o merge
-    com metadados das notícias (como 'title' e 'url').
+    Carrega o DataFrame completo de features e separa em duas estruturas:
+    - `news_features`: features por `pageId` (opcionalmente com metadados);
+    - `clients_features`: features por `userId`.
 
     Args:
-        storage (Optional[Storage]): Instância de armazenamento para I/O. Se None,
-            uma nova instância será criada.
-        include_metadata (bool): Flag para indicar se os metadados das notícias devem
-            ser incluídos. Padrão é False.
+        storage: Instância de storage (usa Storage local por padrão).
+        include_metadata: Se True, tenta enriquecer `news_features` com metadados.
 
     Returns:
-        Dict[str, pd.DataFrame]: Dicionário contendo:
-            - "news_features": DataFrame com as features das notícias
-             (e metadados, se solicitado).
-            - "clients_features": DataFrame com as features dos clientes.
+        Dicionário com as chaves `news_features` e `clients_features`.
     """
     if storage is None:
-        storage = Storage(use_s3=USE_S3)
+        from src.storage.io import Storage as _Storage
 
+        storage = _Storage(use_s3=USE_S3)
     full_path = os.path.join(DATA_PATH, "train", "X_train_full.parquet")
-    logger.info("🔍 [Data Loader] Carregando dados completos de: %s", full_path)
+    logger.info("[Data Loader] Carregando dados completos de: %s", full_path)
     full_df = storage.read_parquet(full_path)
 
-    # Extrai as features de notícias, garantindo que 'pageId' esteja incluído
-    news_features_df = full_df[['pageId'] + NEWS_FEATURES_COLUMNS]
-
-    # Converte pageId para string para garantir a compatibilidade
-    news_features_df.loc[:, "pageId"] = news_features_df["pageId"].astype(str)
+    news_df = full_df[["pageId"] + NEWS_FEATURES_COLUMNS].copy()
+    news_df["pageId"] = news_df["pageId"].astype(str)
 
     if include_metadata:
         try:
-            news_metadata = pd.read_parquet("data/features/news_feats.parquet")[METADATA_COLS]
-            # Converte também os pageId dos metadados
-            news_metadata["pageId"] = news_metadata["pageId"].astype(str)
-            logger.info("🔍 [Data Loader] Metadados de notícias carregados com sucesso.")
-            news_features_df = news_features_df.merge(news_metadata, on="pageId", how="left")
-            logger.info("✅ [Data Loader] DataFrame de notícias enriquecido: %d registros.",
-                        len(news_features_df))
-        except Exception as e:
-            logger.warning(
-                "Não foi possível carregar ou fazer merge dos metadados das notícias: %s", e)
+            metadata_df = pd.read_parquet(os.path.join("data", "features", "news_feats.parquet"))[METADATA_COLS]
+            metadata_df["pageId"] = metadata_df["pageId"].astype(str)
+            news_df = news_df.merge(metadata_df, on="pageId", how="left")
+            logger.info("[Data Loader] Metadados de notícias adicionados: %d registros.", len(news_df))
+        except Exception as exc:  # pragma: no cover - IO environment dependent
+            logger.warning("Falha ao carregar metadados das notícias: %s", exc)
 
-    if 'userId' not in full_df.columns:
-        logger.error(
-            "🚨 [Data Loader] A coluna 'userId' não foi encontrada no DataFrame completo.")
-        raise KeyError("Coluna 'userId' ausente.")
-    clients_features_df = full_df[['userId'] + CLIENT_FEATURES_COLUMNS].drop_duplicates()
+    if "userId" not in full_df.columns:
+        logger.error("Coluna 'userId' não encontrada no DataFrame completo.")
+        raise KeyError("Coluna 'userId' ausente no dataset completo.")
 
-    logger.info("✅ [Data Loader] Dados preparados: %d registros de notícias e %d de clientes.",
-                len(news_features_df), len(clients_features_df))
+    clients_df = full_df[["userId"] + CLIENT_FEATURES_COLUMNS].drop_duplicates().reset_index(drop=True)
+    logger.info("[Data Loader] Dados preparados: %d notícias, %d clientes.", len(news_df), len(clients_df))
 
-    return {"news_features": news_features_df, "clients_features": clients_features_df}
+    return {"news_features": news_df, "clients_features": clients_df}

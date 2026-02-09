@@ -3,9 +3,14 @@ import tempfile
 import pickle
 import fnmatch
 from typing import Any, Optional, List, BinaryIO
-import boto3
 import pandas as pd
-from botocore.exceptions import ClientError
+
+try:
+    import boto3  # type: ignore
+    from botocore.exceptions import ClientError  # type: ignore
+except Exception:  # pragma: no cover - environment dependent
+    boto3 = None  # type: ignore
+    ClientError = Exception  # type: ignore
 from src.config import logger
 from .base import BaseStorage
 
@@ -46,6 +51,10 @@ class S3Storage(BaseStorage):
     """
 
     def __init__(self, bucket: str):
+        if boto3 is None:  # pragma: no cover - environment dependent
+            raise ImportError(
+                "boto3 is required to use S3Storage but is not installed in this environment"
+            )
         self.s3_bucket = bucket
         try:
             self.s3_client = boto3.client("s3")
