@@ -1,4 +1,4 @@
-.PHONY: setup clean lint format check-format install install-uv create-env install-env e build publish pp_features mlflow-server create-kernel remove-kernel
+.PHONY: setup clean lint format check-format install install-uv create-env install-env e build publish pp_features mlflow-server create-kernel remove-kernel docker-build docker-api docker-run-local deploy-aws
 
 PYTHON = python3
 LINTING_PATHS = src/ tests/
@@ -109,7 +109,16 @@ local_api:
 	PYTHONPATH="." uvicorn src.api.app:app --reload
 
 docker_api:
-	PYTHONPATH="." docker-compose up --build
+	docker-compose -f deploy/docker-compose.yml up --build
+
+docker-build:
+	docker build -f deploy/Dockerfile -t ml-datathon:latest .
+
+docker-run-local:
+	sh deploy/run-local.sh
+
+deploy-aws:
+	sh deploy/deploy-to-aws.sh
 
 test:
 	PYTHONPATH="." pytest --disable-warnings
