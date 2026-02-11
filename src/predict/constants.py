@@ -14,7 +14,10 @@ EXPECTED_COLUMNS = [
     "themeSubFreq",
 ]
 
-CLIENT_FEATURES_COLUMNS = ["isWeekend", "userTypeFreq", "dayPeriodFreq"]
+CLIENT_FEATURES_COLUMNS = [
+    "isWeekend", 
+    "userTypeFreq", 
+    "dayPeriodFreq"]
 
 NEWS_FEATURES_COLUMNS = [
     "relLocalState",
@@ -27,4 +30,10 @@ NEWS_FEATURES_COLUMNS = [
     "themeSubFreq",
 ]
 
-METADATA_COLS = ["pageId", "url", "title", "issuedDate", "issuedTime"]
+METADATA_COLS = [
+    "pageId", 
+    "url", 
+    "title", 
+    "issuedDate", 
+    "issuedTime"
+]

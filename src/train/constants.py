@@ -1,4 +1,8 @@
-CLIENT_FEATURES = ["userTypeFreq", "isWeekend", "dayPeriodFreq"]
+CLIENT_FEATURES = [
+    "userTypeFreq", 
+    "isWeekend", 
+    "dayPeriodFreq"
+]
 
 NEWS_FEATURES = [
     "relLocalState",
