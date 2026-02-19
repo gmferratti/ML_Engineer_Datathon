@@ -23,6 +23,9 @@ def load_features(storage: Storage) -> pd.DataFrame:
     logger.info("🔍 [Train] Carregando features do arquivo: %s", file_path)
     df = storage.read_parquet(file_path)
     logger.info("📊 [Train] Features carregadas com shape: %s", df.shape)
+    logger.info("✅ [Train] Features disponíveis: %s", df.columns.tolist())
+    logger.info("🔍 [Train] Verificando dados ausentes...")
+    logger.info("📊 [Train] Tipos das features de entrada: %s", df.dtypes.to_dict())
     return df
 
 
